@@ -1,9 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>Battery Cycle Count</displayName>
-<description>This attribute returns the number of charge cycles logged on the current battery.</description>
-<dataType>number</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-echo "&lt;result&gt;$(system_profiler SPPowerDataType | awk '/Cycle Count/{print $NF}')&lt;/result&gt;"&#13;
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Battery Cycle Count</displayName>
+	<displayInCategory>Hardware</displayInCategory>
+	<description>Battery charge cycle count, or N/A for desktop Macs.</description>
+	<dataType>Integer</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# updated by SecurityShrimp 2026
+# Battery Cycle Count Extension Attribute
+# Tested on macOS 11 through 26 (Tahoe), Intel and Apple Silicon
+# Returns the battery cycle count, or "N/A" for desktop Macs
+
+cycleCount=$(/usr/sbin/ioreg -r -c AppleSmartBattery 2&gt;/dev/null \
+    | /usr/bin/awk -F'= ' '/"CycleCount" =/ {print $2; exit}')
+
+if [[ -z "$cycleCount" ]]; then
+    echo "&lt;result&gt;N/A&lt;/result&gt;"
+else
+    echo "&lt;result&gt;$cycleCount&lt;/result&gt;"
+fi
 </scriptContentsMac>
 </extensionAttribute>
