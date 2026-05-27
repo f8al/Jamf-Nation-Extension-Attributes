@@ -2,7 +2,7 @@
 <extensionAttribute>
 	<displayName>DNS Servers</displayName>
 	<displayInCategory>Networking</displayInCategory>
-	<description>This attribute lists all DNS servers set on the active network connection.  This attribute applies to both Mac and Windows.</description>
+	<description>This attribute lists all DNS servers set on the active network connection on macOS</description>
 	<dataType>string</dataType>
 	<scriptContentsMac>#!/bin/zsh
 
