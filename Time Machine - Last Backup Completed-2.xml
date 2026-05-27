@@ -1,1 +1,39 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Time Machine - Last Backup Completed</displayName>	<displayInCategory>Backup</displayInCategory>	<description>This attribute displays the last time a complete Time Machine backup ran.</description>	<dataType>date</dataType>	<scriptContentsMac>#!/bin/shif [ -f /private/var/db/.TimeMachine.Results.plist ];thenlastBackupTime=`/usr/bin/defaults read /private/var/db/.TimeMachine.Results "BACKUP_COMPLETED_DATE" | colrm 20`echo "&lt;result&gt;$lastBackupTime&lt;/result&gt;"elseecho "&lt;result&gt;Not enabled.&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Time Machine - Last Backup Completed</displayName>
+	<displayInCategory>Backup</displayInCategory>
+	<description>Timestamp of the most recent successful Time Machine backup, or "Not enabled".</description>
+	<dataType>date</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Time Machine Last Backup Completed Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# tmutil latestbackup was added in 10.9 and is the canonical method.
+# It returns the most recent local snapshot path (which embeds an ISO
+# timestamp) or an error if no backups exist.
+
+if ! /usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup 2&gt;/dev/null | /usr/bin/grep -q "^1$"; then
+	echo "&lt;result&gt;Not enabled.&lt;/result&gt;"
+	exit 0
+fi
+
+# Try tmutil first
+latest=$(/usr/bin/tmutil latestbackup 2&gt;/dev/null)
+
+if [[ -n "$latest" ]]; then
+	# Path looks like .../com.apple.TimeMachine.2026-05-26-013344.local
+	stamp=$(/usr/bin/basename "$latest" | /usr/bin/sed -E 's/.*\.([0-9]{4}-[0-9]{2}-[0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2}).*/\1 \2:\3:\4/')
+	echo "&lt;result&gt;${stamp:-$latest}&lt;/result&gt;"
+	exit 0
+fi
+
+# Fall back to TimeMachine.Results.plist (only present on older macOS)
+if [[ -f /private/var/db/.TimeMachine.Results.plist ]]; then
+	stamp=$(/usr/bin/defaults read /private/var/db/.TimeMachine.Results BACKUP_COMPLETED_DATE 2&gt;/dev/null)
+	echo "&lt;result&gt;${stamp:-Unknown}&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Unknown&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

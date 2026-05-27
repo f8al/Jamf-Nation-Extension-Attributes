@@ -1,12 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute><displayName>Verify MDM Enrollment</displayName><displayInCategory>JAMF Software</displayInCategory><dataType>string</dataType><description>This attribute verifies that the client has enrolled to the JSS.  Results returned are "Enabled" or "Not Enabled" based on whether the client has an MDM profile supplied by the JSS. 
-</description><scriptContentsMac>#!/bin/sh
-mdmEnrollmentProfileID="00000000-0000-0000-A000-4A414D460003"
-enrolled=`/usr/bin/profiles -C | /usr/bin/grep "$mdmEnrollmentProfileID"`
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Verify MDM Enrollment</displayName>
+	<displayInCategory>JAMF Software</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports "Enrolled" if the Jamf MDM profile (well-known UUID 00000000-0000-0000-A000-4A414D460003) is installed, "Not Enrolled" otherwise.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-if [ "$enrolled" != "" ]; then
+# Updated by SecurityShrimp 2026
+# Verify MDM Enrollment Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# The profiles binary is preserved on every modern macOS. -C lists
+# device-scope profiles which is where the MDM enrollment lives.
+
+mdmUuid="00000000-0000-0000-A000-4A414D460003"
+
+if /usr/bin/profiles -C 2&gt;/dev/null | /usr/bin/grep -q "$mdmUuid"; then
 	echo "&lt;result&gt;Enrolled&lt;/result&gt;"
 else
 	echo "&lt;result&gt;Not Enrolled&lt;/result&gt;"
 fi
-</scriptContentsMac><scriptContentsWin>
-</scriptContentsWin></extensionAttribute>
+</scriptContentsMac>
+</extensionAttribute>

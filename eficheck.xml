@@ -1,31 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>EFI Password</displayName>
-<displayInCategory>Device Security</displayInCategory>
-<dataType>string</dataType>
-<description>Displays "Set" if a firmware password is set; displays "Not Set" if no firmware password is set.
-</description>
-<scriptContentsMac>#!/bin/sh
-################
-# Most authorship of the following script by Jamf Nation user: snovak
-# Additional edits by Jamf Nation user: mwoodruff
-################
-# Regex for OS detection +10.10
-OSREGEX="^1[0-9]$"
-# Gets the OS version
-OSVERS=$(/usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '{print $2}')
-if [[ $OSVERS =~ $OSREGEX ]]; then
-	fwmode=`firmwarepasswd -mode | grep Mode | awk -F. '{print $1}'`
-    fwmode=${fwmode:6}
-else
-	fwmode=`nvram -p | grep security-mode | awk '{print $2}'`
+	<displayName>EFI Password</displayName>
+	<displayInCategory>Device Security</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports "Set" or "Not Set" for the firmware password. Returns "N/A" on Apple Silicon (the concept doesn't apply).</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# EFI Password Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel only
+# firmwarepasswd was removed in macOS 14 (Apple Silicon never had it).
+# nvram security-mode remains the authoritative source on Intel Macs and
+# works whether or not firmwarepasswd is present.
+
+if [[ "$(/usr/bin/uname -m)" == "arm64" ]]; then
+    echo "&lt;result&gt;N/A&lt;/result&gt;"
+    exit 0
 fi
-if [ "$fwmode" == "none" ]; then
-        echo "&lt;result&gt;Not Set&lt;/result&gt;"
-elif [ "$fwmode" != "" ]; then
-        echo "&lt;result&gt;Set&lt;/result&gt;"
-else 
-	echo "&lt;result&gt;Not Set&lt;/result&gt;"
+
+mode=$(/usr/sbin/nvram -p 2&gt;/dev/null | /usr/bin/awk '/security-mode/ { print $2; exit }')
+
+if [[ -z "$mode" || "$mode" == "none" ]]; then
+    echo "&lt;result&gt;Not Set&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Set&lt;/result&gt;"
 fi
 </scriptContentsMac>
 </extensionAttribute>

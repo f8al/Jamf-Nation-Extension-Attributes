@@ -1,24 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>Java Vendor</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>This attribute detects if a Mac's Java browser plug-in in /Library/Internet Plug-Ins was supplied by Apple or Oracle. If no Java plug-in is detected, a "No Java Plug-In Available" message is displayed.</description>
-  <scriptContentsMac>#!/bin/bash
+	<displayName>Java Vendor</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Detects which JDK vendor is installed (Oracle, OpenJDK/Temurin/Zulu, etc.) or "No Java Available".</description>
+	<scriptContentsMac>#!/bin/zsh
 
-javaVendor=`/usr/bin/defaults read /Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Info CFBundleIdentifier`
+# Updated by SecurityShrimp 2026
+# Java Vendor Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
 
-if [ "$javaVendor" = "com.oracle.java.JavaAppletPlugin" ]; then
-        result=Oracle
-elif [ "$javaVendor" = "com.apple.java.JavaAppletPlugin" ]; then
-        result=Apple
-elif [ "$javaVendor" = "" ]; then
-        result="No Java Plug-In Available"
+if ! /usr/libexec/java_home -F &amp;&gt;/dev/null; then
+    echo "&lt;result&gt;No Java Available&lt;/result&gt;"
+    exit 0
 fi
 
-echo "&lt;result&gt;$result&lt;/result&gt;"
+out=$(/usr/bin/java -version 2&gt;&amp;1)
 
-
+if echo "$out" | /usr/bin/grep -qi "openjdk"; then
+    echo "&lt;result&gt;OpenJDK&lt;/result&gt;"
+elif echo "$out" | /usr/bin/grep -qi "java(tm)"; then
+    echo "&lt;result&gt;Oracle&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Unknown&lt;/result&gt;"
+fi
 </scriptContentsMac>
 </extensionAttribute>

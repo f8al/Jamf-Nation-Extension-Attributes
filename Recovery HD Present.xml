@@ -1,12 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute><displayName>Recovery HD Present</displayName><displayInCategory>System Information</displayInCategory><dataType>string</dataType><description>This attribute returns an Apple Recovery HD is present on the boot disk. Examples of returned values include: "Present", "Not Present".  This attribute template applies to drives with Mac OS X 10.7 and later.
-</description><scriptContentsMac>#!/bin/sh
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Recovery Volume Present</displayName>
+	<displayInCategory>System Information</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports whether a Recovery volume exists on the boot disk. Returns "Present" or "Not Present".</description>
+	<scriptContentsMac>#!/bin/zsh
 
-recoveryHDPresent=`/usr/sbin/diskutil list | grep "Recovery HD" | grep disk0`
+# Updated by SecurityShrimp 2026
+# Recovery Volume Present Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# The legacy HFS+ "Recovery HD" partition (10.7-10.12) was replaced by an
+# APFS "Recovery" volume in the boot container in macOS 10.13+. This checks
+# for both so it remains correct on any modern Mac.
 
-if [ "$recoveryHDPresent" != "" ]; then
-	echo "&lt;result&gt;Present&lt;/result&gt;"
+if /usr/sbin/diskutil apfs list 2&gt;/dev/null | /usr/bin/grep -Eq 'Name:[[:space:]]+Recovery'; then
+    echo "&lt;result&gt;Present&lt;/result&gt;"
+elif /usr/sbin/diskutil list 2&gt;/dev/null | /usr/bin/grep -q 'Recovery HD'; then
+    echo "&lt;result&gt;Present&lt;/result&gt;"
 else
-	echo "&lt;result&gt;Not Present&lt;/result&gt;"
+    echo "&lt;result&gt;Not Present&lt;/result&gt;"
 fi
-</scriptContentsMac><scriptContentsWin>
-</scriptContentsWin></extensionAttribute>
+</scriptContentsMac>
+</extensionAttribute>

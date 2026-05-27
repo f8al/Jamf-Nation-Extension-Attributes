@@ -1,19 +1,30 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute><displayName>PresSTORE - Number of Selected Files</displayName><displayInCategory>Backup</displayInCategory><dataType>date</dataType><description>This attribute displays the number of files PresSTORE has selected to back up. This attribute is compatible with PresSTORE 4.3 and higher. This attribute applies to Mac only.
-</description><scriptContentsMac>#!/bin/sh
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>PresSTORE - Number of Selected Files</displayName>
+	<displayInCategory>Backup</displayInCategory>
+	<dataType>date</dataType>
+	<description>Count of files PresSTORE has selected for backup.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-if [ -f /usr/local/aw/bin/nsdchat ]; then 
-    cd /usr/local/aw
-    workstation=`bin/nsdchat -c Server names`
-    files=`bin/nsdchat -c Server $workstation totalfiles`
+# Updated by SecurityShrimp 2026
+# PresSTORE Number of Selected Files Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
 
-    if [ "$files" == "" ]; then
-        echo "&lt;result&gt;O Files&lt;/result&gt;"
-    else
-        echo "&lt;result&gt;$files Files&lt;/result&gt;"
-    fi
+nsdchat="/usr/local/aw/bin/nsdchat"
 
-else 
-    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+if [[ ! -x "$nsdchat" ]]; then
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+	exit 0
 fi
-</scriptContentsMac><scriptContentsWin>
-</scriptContentsWin></extensionAttribute>
+
+cd /usr/local/aw 2&gt;/dev/null || exit 0
+workstation=$("$nsdchat" -c Server names 2&gt;/dev/null)
+files=$("$nsdchat" -c Server "$workstation" totalfiles 2&gt;/dev/null)
+
+if [[ -z "$files" ]]; then
+	echo "&lt;result&gt;0 Files&lt;/result&gt;"
+else
+	echo "&lt;result&gt;${files} Files&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

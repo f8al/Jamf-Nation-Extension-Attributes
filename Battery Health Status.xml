@@ -1,19 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-	<displayName>Battery Health Status</displayName>
-	<displayInCategory>System Information</displayInCategory>
-	<dataType>string</dataType>
-	<description>This attribute returns the health of the battery, if installed.  In the event of battery failure, the attribute will report back "Failure".  This attribute applies to both Mac and Windows.</description>
+	<displayName>Battery Permanent Failure Status</displayName>
+	<displayInCategory>Hardware</displayInCategory>
+	<description>Reports the battery permanent failure status: OK, Failure, or N/A for desktop Macs.</description>
+	<dataType>String</dataType>
 	<scriptContentsMac>#!/bin/zsh
 
-result=`ioreg -r -c "AppleSmartBattery" | grep "PermanentFailureStatus" | awk '{print $3}' | sed s/\"//g`
+# Updated by SecurityShrimp 2026
+# Battery Permanent Failure Status Extension Attribute
+# Tested on macOS 11 through 26 (Tahoe), Intel and Apple Silicon
+# Returns "OK", "Failure", or "N/A" for Macs without a battery
 
-if [ "$result" == "1" ]; then
-result="Failure"
-elif [ "$result" == "0" ]; then
-result="OK"
-fi
+# Anchor on the key name and split on the = sign rather than whitespace
+# columns, which vary by indentation depth across Mac models.
+rawValue=$(/usr/sbin/ioreg -r -c AppleSmartBattery 2&gt;/dev/null \
+    | /usr/bin/awk -F'= ' '/"PermanentFailureStatus" =/ {
+        gsub(/^[ \t]+|[ \t]+$/, "", $2)
+        print $2
+        exit
+    }')
+
+case "$rawValue" in
+    0)  result="OK" ;;
+    "") result="N/A" ;;
+    *)  result="Failure" ;;
+esac
 
 echo "&lt;result&gt;$result&lt;/result&gt;"
-	</scriptContentsMac>
+</scriptContentsMac>
 </extensionAttribute>

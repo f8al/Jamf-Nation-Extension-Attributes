@@ -1,1 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>ARD Field 2</displayName>	<displayInCategory>System Information</displayInCategory>	<description>This attribute returns the ARD Computer Info field #2 from the Computer Information attributes in the Apple Remote Desktop settings of a machine.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shif [ -f "/Library/Preferences/com.apple.RemoteDesktop.plist" ]; thenecho "&lt;result&gt;`/usr/bin/defaults read /Library/Preferences/com.apple.RemoteDesktop Text2`&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>ARD Field 2</displayName>
+	<displayInCategory>System Information</displayInCategory>
+	<description>Returns the Apple Remote Desktop Computer Info field #2.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# ARD Field 2 Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Reads Text2 from the Apple Remote Desktop preferences plist. The plist
+# is only present once ARD has been configured; absence is reported as empty.
+
+plist="/Library/Preferences/com.apple.RemoteDesktop.plist"
+
+if [[ -f "$plist" ]]; then
+    value=$(/usr/bin/defaults read "$plist" Text2 2&gt;/dev/null)
+    echo "&lt;result&gt;$value&lt;/result&gt;"
+else
+    echo "&lt;result&gt;&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

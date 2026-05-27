@@ -1,19 +1,27 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-  <displayName>Caching Service Saved Cache Size</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>This Extension Attribute verifies that Server.app is installed at /Library/Applications and if installed reports how many bytes are being used by the Caching Service Saved Cache directory.</description>
-  <scriptContentsMac>#!/bin/sh
+	<displayName>Content Caching Saved Cache Size</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Reports the number of bytes currently used by the macOS Content Caching data store.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-if [ /Applications/Server.app ]; then
+# Updated by SecurityShrimp 2026
+# Content Caching Saved Cache Size Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# macOS Server (Server.app) was discontinued in 2022; the Content Caching
+# service is now built into base macOS and controlled via the Sharing
+# preference pane / AssetCacheManagerUtil. The legacy serveradmin command
+# no longer exists on modern macOS.
 
-/bin/echo "&lt;result&gt;$(serveradmin settings caching:SavedCacheSize | awk '{print $3}'| sed s/\"//g)&lt;/result&gt;"
+dataPath=$(/usr/bin/defaults read /Library/Preferences/com.apple.AssetCache CacheDataPath 2&gt;/dev/null)
+[[ -z "$dataPath" ]] &amp;&amp; dataPath="/Library/Application Support/Apple/AssetCache/Data"
 
+if [[ -d "$dataPath" ]]; then
+	bytes=$(/usr/bin/du -sk "$dataPath" 2&gt;/dev/null | /usr/bin/awk '{print $1 * 1024}')
+	echo "&lt;result&gt;${bytes:-0}&lt;/result&gt;"
 else
-  /bin/echo "&lt;result&gt;Server App Not Installed&lt;/result&gt;"
-  
+	echo "&lt;result&gt;Content Caching Not Active&lt;/result&gt;"
 fi
-exit</scriptContentsMac>
+</scriptContentsMac>
 </extensionAttribute>

@@ -1,1 +1,39 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Bluetooth Discoverable State</displayName>	<displayInCategory>Security Reporting</displayInCategory>	<dataType>string</dataType>	<description>This attribute verifies the Bluetooth Discoverable State.  The value to be verified will need to be specified when creating this extension attribute.  Example: "false" verifies that Bluetooth is not set to "Discoverable"  This extension attribute requires this preference be set using Managed Preferences (MCX).</description>	<scriptContentsMac>#!/bin/shdesiredValue="EditFromTemplate_Desired_Value_-_Example:_false"appDomain="com.apple.Bluetooth.ByHost"keyName="DiscoverableState"currentUser=`last -1 -t console | awk '{print $1}'`result=""tmpResult="`dscl . mcxread /Users/$currentUser \"$appDomain\" \"$keyName\" |grep Value:| sed 's/Value\: //g'`"if [ "$tmpResult" == "1" ]; thenresult="true"elseif [ "$tmpResult" == "0" ]; then	result="false"else	if [ "$tmpResult" == "" ]; then		result="Domain or Key Not Found"	else		result="$tmpResult"	fififiif [ "$result" == "$desiredValue" ]; thenecho "&lt;result&gt;Pass ($result)&lt;/result&gt;"elseecho "&lt;result&gt;Fail ($result)&lt;/result&gt;"fi			</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Bluetooth Discoverable State</displayName>
+	<displayInCategory>Security Reporting</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports whether Bluetooth Discoverable mode is enabled for the current console user.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Bluetooth Discoverable State Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Legacy script used "dscl . mcxread", which depends on MCX (deprecated
+# since 10.7 and inert under modern Configuration Profiles). We instead
+# read the value directly from the ByHost domain for the active console
+# user. macOS only exposes "Discoverable" while the Bluetooth pane is open,
+# so a value of 0 (or absence) reflects the default secure posture.
+
+user=$(/usr/sbin/scutil &lt;&lt;&lt; "show State:/Users/ConsoleUser" 2&gt;/dev/null \
+    | /usr/bin/awk '/Name :/ &amp;&amp; ! /loginwindow/ { print $3; exit }')
+
+if [[ -z "$user" ]]; then
+    echo "&lt;result&gt;No Console User&lt;/result&gt;"
+    exit 0
+fi
+
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+plist=$(/bin/ls "$home/Library/Preferences/ByHost/" 2&gt;/dev/null | /usr/bin/grep -m1 "com.apple.Bluetooth.")
+value=""
+if [[ -n "$plist" ]]; then
+    value=$(/usr/bin/defaults read "$home/Library/Preferences/ByHost/${plist%.plist}" DiscoverableState 2&gt;/dev/null)
+fi
+
+case "$value" in
+    1) echo "&lt;result&gt;true&lt;/result&gt;" ;;
+    0) echo "&lt;result&gt;false&lt;/result&gt;" ;;
+    *) echo "&lt;result&gt;Not Set&lt;/result&gt;" ;;
+esac
+</scriptContentsMac>
+</extensionAttribute>

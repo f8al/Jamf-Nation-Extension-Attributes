@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>Quest QAS Version Info</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>Copy the script below into your EA and choose Data Type: String. It will output the version number only without any addition filler information.&#13;
-&#13;
----&#13;
-#!/bin/bash&#13;
-#Output the Version Number of Quest Authentication Services&#13;
-#Freddie Cox 2012&#13;
-&#13;
-version=`vastool -v | grep QAS\ Version | awk '{print $4}'`&#13;
-&#13;
-echo "&lt;result&gt;$version&lt;/result&gt;"&#13;
----</description>
-  <scriptContentsMac>#!/bin/bash
-#Output the Version Number of Quest Authentication Services
-#Freddie Cox 2012
+	<displayName>Quest QAS Version Info</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Returns the installed Quest/One Identity Authentication Services version via vastool, or "Not Installed". QAS was rebranded "Safeguard Authentication Services".</description>
+	<scriptContentsMac>#!/bin/zsh
 
-version=`vastool -v | grep QAS\ Version | awk '{print $4}'`
+# Updated by SecurityShrimp 2026
+# Quest QAS Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
 
-echo "&lt;result&gt;$version&lt;/result&gt;"</scriptContentsMac>
+if ! /usr/bin/which vastool &amp;&gt;/dev/null &amp;&amp; [[ ! -x /opt/quest/bin/vastool ]]; then
+	echo "&lt;result&gt;Not Installed&lt;/result&gt;"
+	exit 0
+fi
+
+vastool="${commands[vastool]:-/opt/quest/bin/vastool}"
+version=$("$vastool" -v 2&gt;/dev/null | /usr/bin/awk '/QAS Version|Safeguard Authentication Services/ { print $NF; exit }')
+
+echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

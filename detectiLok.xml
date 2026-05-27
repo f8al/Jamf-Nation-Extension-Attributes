@@ -1,16 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>List iLok Serial</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>EA to list attached iLok USB device Serial</description>
-  <scriptContentsMac>#!/bin/sh
-## Script to detect and enumerate attached iLok Serial
+	<displayName>List iLok Serial</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Returns the serial number of every attached PACE iLok USB device, comma-separated.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-SERIAL=`system_profiler SPUSBDataType | grep -B 5 -i ': iLok' | grep 'Serial' | cut -f 2 -d ":" | sed -e "s/ //"`
-#SERIAL=`system_profiler SPUSBDataType | grep -B 5 -i ': iLok' | grep 'Serial'`
+# Updated by SecurityShrimp 2026
+# iLok USB Detection Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
 
-echo '&lt;result&gt;'$SERIAL'&lt;/result&gt;'
+serials=$(/usr/sbin/system_profiler SPUSBDataType 2&gt;/dev/null \
+	| /usr/bin/awk '
+		/Product ID:/ { p=0 }
+		/: iLok|iLok 3:|iLok USB/ { p=1 }
+		p &amp;&amp; /Serial Number:/ { sub(/^[[:space:]]*Serial Number: /, ""); print; p=0 }
+	' \
+	| /usr/bin/paste -sd ',' -)
+
+echo "&lt;result&gt;${serials:-No iLok attached}&lt;/result&gt;"
 </scriptContentsMac>
 </extensionAttribute>

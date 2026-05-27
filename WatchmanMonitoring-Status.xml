@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Watchman Monitoring Status</displayName>
-<description>This attribute returns "Has issue" when Watchman Monitoring is reporting an error.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-&#13;
-if [ -f /Library/MonitoringClient/Utilities/ExportStatus ]; then&#13;
-if [ defaults read /Library/MonitoringClient/ClientData/UnifiedStatus.plist CurrentWarning ]; then&#13;
-   result="Has issue"&#13;
-else&#13;
-   result="No problems detected"&#13;
-fi&#13;
-echo "&lt;result&gt;$result&lt;/result&gt;"&#13;
-fi&#13;
-  echo "&lt;result&gt;Watchman Monitoring not installed&lt;/result&gt;"&#13;
-fi&#13;
+	<displayName>Watchman Monitoring Status</displayName>
+	<description>Reports "Has issue" when Watchman Monitoring has a CurrentWarning, "No problems detected" otherwise.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Watchman Monitoring Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Original script had a broken if-chain that always reported as installed.
+# Fixed to actually probe for CurrentWarning's presence.
+
+if [[ ! -f /Library/MonitoringClient/Utilities/ExportStatus ]]; then
+	echo "&lt;result&gt;Watchman Monitoring not installed&lt;/result&gt;"
+	exit 0
+fi
+
+if /usr/bin/defaults read /Library/MonitoringClient/ClientData/UnifiedStatus.plist CurrentWarning &amp;&gt;/dev/null; then
+	echo "&lt;result&gt;Has issue&lt;/result&gt;"
+else
+	echo "&lt;result&gt;No problems detected&lt;/result&gt;"
+fi
 </scriptContentsMac>
-<scriptContentsWindows/>
 </extensionAttribute>

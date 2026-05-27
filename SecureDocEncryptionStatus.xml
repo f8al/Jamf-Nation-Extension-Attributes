@@ -1,28 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>SecureDoc - Encryption Status (v 5.3.31)</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>This attribute returns the Disk Encryption Status for WinMagic SecureDoc on the boot disk.  Examples of returned values include: "Software Encrypted", "Partially Encrypted", "Unprotected", "Hardware Encrypted", "Not Encrypted", and "Not Installed".  This attribute template applies to WinMagic SecureDoc (v 5.3.31).</description>
-  <scriptContentsMac>#!/bin/sh
-#This script has been verified to work on WinMagic SecureDoc (v 5.3.31).
+	<displayName>SecureDoc - Encryption Status</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Returns WinMagic SecureDoc encryption status for the boot disk: "Software Encrypted", "Partially Encrypted", "Unprotected", "Hardware Encrypted", "Not Encrypted", or "Not installed".</description>
+	<scriptContentsMac>#!/bin/zsh
 
-#Check to see if SecureDoc is installed
-if [ -f "/WinMagic/com.winmagic.registry.plist" ]; then
-	result=`/usr/bin/defaults read /WinMagic/com.winmagic.registry | grep CasperEncryptionStatus | awk '{print $3}' | sed 's/;//g'`
-	if [ "$result" == "4097" ]; then
-		echo "&lt;result&gt;Software Encrypted&lt;/result&gt;"
-	elif [ "$result" == "4112" ]; then
-		echo "&lt;result&gt;Partially Encrypted&lt;/result&gt;"
-	elif [ "$result" == "4352" ]; then
-		echo "&lt;result&gt;Unprotected&lt;/result&gt;"
-	elif [ "$result" == "4353" ]; then
-		echo "&lt;result&gt;Hardware Encrypted&lt;/result&gt;"
-	else
-		echo "&lt;result&gt;Not Encrypted&lt;/result&gt;"
-	fi
-else
+# Updated by SecurityShrimp 2026
+# SecureDoc Encryption Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel only (Apple Silicon returns N/A)
+# WinMagic SecureDoc is Intel-only on macOS; Apple Silicon doesn't support
+# third-party FDE bootloaders. The registry plist path is unchanged across
+# recent SecureDoc versions.
+
+if [[ "$(/usr/bin/uname -m)" == "arm64" ]]; then
+	echo "&lt;result&gt;N/A&lt;/result&gt;"
+	exit 0
+fi
+
+plist="/WinMagic/com.winmagic.registry.plist"
+
+if [[ ! -f "$plist" ]]; then
 	echo "&lt;result&gt;Not installed&lt;/result&gt;"
-fi</scriptContentsMac>
+	exit 0
+fi
+
+status=$(/usr/bin/defaults read "${plist%.plist}" CasperEncryptionStatus 2&gt;/dev/null)
+
+case "$status" in
+	4097) echo "&lt;result&gt;Software Encrypted&lt;/result&gt;" ;;
+	4112) echo "&lt;result&gt;Partially Encrypted&lt;/result&gt;" ;;
+	4352) echo "&lt;result&gt;Unprotected&lt;/result&gt;" ;;
+	4353) echo "&lt;result&gt;Hardware Encrypted&lt;/result&gt;" ;;
+	*)    echo "&lt;result&gt;Not Encrypted&lt;/result&gt;" ;;
+esac
+</scriptContentsMac>
 </extensionAttribute>

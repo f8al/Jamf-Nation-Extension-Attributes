@@ -1,1 +1,44 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>VMware - Virtual Machine List</displayName>	<displayInCategory>Virtualization</displayInCategory>	<description>This attribute displays a list of VMware virtual machines that are installed on the machine.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shOS=`/usr/bin/sw_vers -productVersion | /usr/bin/colrm 5`if [[ "$OS" &lt; "10.6" ]]; thenmyVMList=`find /Users -name "*.vmx"`elsemyVMList=`mdfind -name ".vmx" | grep -Ev "vmx.lck" | grep -Ev "vmxf"`fiIFS=$'\n'myCount=1echo "&lt;result&gt;"for myFile in $myVMListdomyNetwork=`cat "$myFile"| grep "ethernet.*.connectionType"| awk '{print \$3}'| sed 's/\"//g'`myDisplayName=`cat "$myFile"| grep "displayName"| sed 's/displayName = //g'| sed 's/\"//g'`myMemSize=`cat "$myFile"| grep "memsize"| awk '{print \$3}'| sed 's/\"//g'`myUUID=`cat "$myFile"| grep "uuid.bios"| sed 's/uuid.bios = //g'| sed 's/\"//g'`myMAC=`cat "$myFile"| grep "ethernet.*.generatedAddress"| grep -v "Offset"| awk '{print \$3}'| sed 's/\"//g'`echo "=-=-=-=-=-=-=-=-=-=-=-=-=-"echo "VMWare VM #$myCount"echo "File Name: $myFile"echo "Display Name: $myDisplayName"echo "Network Type: $myNetwork"echo "MAC Address: $myMAC"echo "Memory: $myMemSize MB"echo "UUID: $myUUID"	let myCount=myCount+1doneecho "&lt;/result&gt;"unset IFS</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>VMware - Virtual Machine List</displayName>
+	<displayInCategory>Virtualization</displayInCategory>
+	<description>Lists VMware Fusion virtual machines on the system with display name, memory, MAC, and UUID. Note: VMware Fusion is Intel-only on macOS; Apple Silicon Macs run UTM/Parallels for x86 guests instead.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# VMware VM List Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Note: Fusion on Apple Silicon (Fusion 13+) only supports ARM guests, but
+# the .vmx format and discovery path is identical to Intel.
+
+vmxFiles=("${(@f)$(/usr/bin/mdfind -name '.vmx' 2&gt;/dev/null | /usr/bin/grep -Ev 'vmx\.lck|vmxf')}")
+
+if (( ${#vmxFiles[@]} == 0 )); then
+	echo "&lt;result&gt;No VMs Found&lt;/result&gt;"
+	exit 0
+fi
+
+count=1
+echo "&lt;result&gt;"
+for vmx in "${vmxFiles[@]}"; do
+	[[ -z "$vmx" ]] &amp;&amp; continue
+	name=$(/usr/bin/awk -F'"' '/^displayName/ { print $2; exit }' "$vmx")
+	net=$(/usr/bin/awk -F'"' '/ethernet0\.connectionType/ { print $2; exit }' "$vmx")
+	mem=$(/usr/bin/awk -F'"' '/^memsize/ { print $2; exit }' "$vmx")
+	uuid=$(/usr/bin/awk -F'"' '/^uuid\.bios/ { print $2; exit }' "$vmx")
+	mac=$(/usr/bin/awk -F'"' '/ethernet0\.generatedAddress[[:space:]]=/ { print $2; exit }' "$vmx")
+
+	echo "=-=-=-=-=-=-=-=-=-=-=-=-=-"
+	echo "VMWare VM #$count"
+	echo "File Name: $vmx"
+	echo "Display Name: $name"
+	echo "Network Type: $net"
+	echo "MAC Address: $mac"
+	echo "Memory: $mem MB"
+	echo "UUID: $uuid"
+	(( count++ ))
+done
+echo "&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

@@ -1,24 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Sophos Anti-Virus RMS Configuration</displayName>
-<description>This is used to get the ParentAddress router configuration located in /Library/Sophos Anti-Virus/RMS/router.config&#13;
-&#13;
-This will tell us which SEC server the machine is ACTUALLY communicating with.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-&#13;
-# Check to see if the file exists&#13;
-if [ -f /Library/Sophos\ Anti-Virus/RMS/router.config ]; then&#13;
-&#13;
-# Read the configuration&#13;
-config=`cat /Library/Sophos\ Anti-Virus/RMS/router.config | grep ParentAddress | cut -d '=' -f2`&#13;
-&#13;
-fi&#13;
-&#13;
-# Display the configuration&#13;
-echo "&lt;result&gt;$config&lt;/result&gt;" &#13;
-&#13;
-exit 0</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Sophos Anti-Virus RMS Configuration</displayName>
+	<description>Returns the ParentAddress (SEC server) from /Library/Sophos Anti-Virus/RMS/router.config so you can verify the management server the agent is actually talking to.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Sophos RMS Configuration Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+config="/Library/Sophos Anti-Virus/RMS/router.config"
+
+if [[ -f "$config" ]]; then
+	parent=$(/usr/bin/awk -F'=' '/ParentAddress/ { print $2; exit }' "$config" | /usr/bin/sed 's/^[[:space:]]*//')
+	echo "&lt;result&gt;${parent:-Not Set}&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

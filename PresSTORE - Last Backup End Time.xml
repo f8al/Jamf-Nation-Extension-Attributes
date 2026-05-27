@@ -1,24 +1,36 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute><displayName>PresSTORE - Last Backup End Time</displayName><displayInCategory>Backup</displayInCategory><dataType>date</dataType><description>This attribute displays the last time the client finished submitting a backup to the server. This attribute is compatible with PresSTORE 4.3 and higher. This attribute applies to Mac only.
-</description><scriptContentsMac>#!/bin/sh
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>PresSTORE - Last Backup End Time</displayName>
+	<displayInCategory>Backup</displayInCategory>
+	<dataType>date</dataType>
+	<description>End time of the most recent PresSTORE backup, with error count.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-if [ -f /usr/local/aw/bin/nsdchat ]; then 
-    cd /usr/local/aw
-    workstation=`bin/nsdchat -c Server names`
-    lastend=`bin/nsdchat -c Server $workstation lastend`
-    lasterror=`bin/nsdchat -c Server $workstation lasterror`
+# Updated by SecurityShrimp 2026
+# PresSTORE Last Backup End Time Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
 
-    if [ "$lastend" != "" ] &amp;&amp; [ "$lasterror" == "&lt;empty&gt;" ]; then
-        lastenddate=`date -j -f %s $lastend +"%Y/%m/%d %H:%M:%S"`
-        echo "&lt;result&gt;Last backup ended $lastenddate with no errors.&lt;/result&gt;"
-    else 
-        lastenddate=`date -j -f %s $lastend +"%m/%d/%y %H:%M:%S"`
-        echo "&lt;result&gt;Last backup ended $lastenddate with $lasterror error(s).&lt;/result&gt;"
-    fi
+nsdchat="/usr/local/aw/bin/nsdchat"
 
-    
-
-else 
-    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+if [[ ! -x "$nsdchat" ]]; then
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+	exit 0
 fi
-</scriptContentsMac><scriptContentsWin>
-</scriptContentsWin></extensionAttribute>
+
+cd /usr/local/aw 2&gt;/dev/null || exit 0
+workstation=$("$nsdchat" -c Server names 2&gt;/dev/null)
+lastend=$("$nsdchat" -c Server "$workstation" lastend 2&gt;/dev/null)
+lasterror=$("$nsdchat" -c Server "$workstation" lasterror 2&gt;/dev/null)
+
+if [[ -n "$lastend" ]]; then
+	isoDate=$(/bin/date -j -f %s "$lastend" "+%Y/%m/%d %H:%M:%S" 2&gt;/dev/null)
+	if [[ "$lasterror" == "&lt;empty&gt;" || -z "$lasterror" ]]; then
+		echo "&lt;result&gt;Last backup ended $isoDate with no errors.&lt;/result&gt;"
+	else
+		echo "&lt;result&gt;Last backup ended $isoDate with $lasterror error(s).&lt;/result&gt;"
+	fi
+else
+	echo "&lt;result&gt;No backups recorded&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

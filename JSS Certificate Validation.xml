@@ -1,1 +1,36 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>JSS Certificate Validation</displayName>	<displayInCategory>JAMF Software</displayInCategory>	<dataType>string</dataType>	<description>This attribute verifies that the client can verify the certificate installed on the JSS.  This attribute should be used prior to checking the preference "This JSS has a valid certificate installed" in the "JSS/URL Certificate" section of the Management Framework Settings.</description>	<scriptContentsMac>#!/bin/shif [ -f "/Library/Preferences/com.jamfsoftware.jamf.plist" ]; thenvalidurl=`defaults read /Library/Preferences/com.jamfsoftware.jamf jss_url | grep https://`	if [[ $validurl = "" ]]; then		echo "&lt;result&gt;Failed - URL did not contain HTTPS&lt;/result&gt;"	else		curlresult=`curl $validurl`			if [[ $curlresult = "" ]]; then				echo "&lt;result&gt;Failed - curl was unable to connect&lt;/result&gt;"			else				echo "&lt;result&gt;Success&lt;/result&gt;"			fi	fielseecho "&lt;result&gt;Failed - No jamf 7.3 conf file found&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>JSS Certificate Validation</displayName>
+	<displayInCategory>JAMF Software</displayInCategory>
+	<dataType>string</dataType>
+	<description>Validates that this client can reach the Jamf Pro JSS URL over HTTPS with a trusted certificate.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Jamf Pro Certificate Validation Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# `curl -fSs --max-time` fails if the cert is untrusted, the URL doesn't
+# resolve, or the response is non-2xx. Stricter than the original (which
+# only required a non-empty body).
+
+plist="/Library/Preferences/com.jamfsoftware.jamf.plist"
+
+if [[ ! -f "$plist" ]]; then
+    echo "&lt;result&gt;Failed - No jamf.plist found&lt;/result&gt;"
+    exit 0
+fi
+
+url=$(/usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf jss_url 2&gt;/dev/null)
+
+if [[ "$url" != https://* ]]; then
+    echo "&lt;result&gt;Failed - URL did not contain HTTPS&lt;/result&gt;"
+    exit 0
+fi
+
+if /usr/bin/curl -fSs --max-time 15 -o /dev/null "$url" 2&gt;/dev/null; then
+    echo "&lt;result&gt;Success&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Failed - curl was unable to connect&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

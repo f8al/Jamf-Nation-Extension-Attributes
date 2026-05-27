@@ -4,13 +4,21 @@
   <displayName>Version of Acrobat Reader DC installed</displayName>
   <displayInCategory/>
   <dataType>string</dataType>
-  <description>Returns the version of Acrobat Reader DC installed.</description>
-  <scriptContentsMac>#!/bin/bash
+  <description>Returns the installed Adobe Acrobat Reader DC version, or N/A if absent.</description>
+  <scriptContentsMac>#!/bin/zsh
 
-ver=`/usr/bin/defaults read /Applications/Adobe\ Acrobat\ Reader\ DC.app/Contents/Info CFBundleShortVersionString`
+# Updated by SecurityShrimp 2026
+# Acrobat Reader DC Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
 
-if [ $ver = "" ]; then
-    ver="N/A"
+plist="/Applications/Adobe Acrobat Reader.app/Contents/Info.plist"
+[[ ! -f "$plist" ]] &amp;&amp; plist="/Applications/Adobe Acrobat Reader DC.app/Contents/Info.plist"
+
+if [[ -f "$plist" ]]; then
+    ver=$(/usr/bin/defaults read "$plist" CFBundleShortVersionString 2&gt;/dev/null)
+    echo "&lt;result&gt;${ver:-Unknown}&lt;/result&gt;"
+else
+    echo "&lt;result&gt;N/A&lt;/result&gt;"
 fi
-echo "&lt;result&gt;$ver&lt;/result&gt;"</scriptContentsMac>
+</scriptContentsMac>
 </extensionAttribute>

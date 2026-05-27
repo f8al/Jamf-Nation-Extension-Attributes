@@ -1,1 +1,18 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Display Sleep</displayName>	<displayInCategory>Power Management</displayInCategory>	<description>This attribute displays the number of minutes before the display sleeps on the active power management profile.</description>	<dataType>integer</dataType>	<scriptContentsMac>#!/bin/shecho "&lt;result&gt;`/usr/bin/pmset -g 2>&amp;1 | grep displaysleep | awk '{print $2}'`&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Display Sleep</displayName>
+	<displayInCategory>Power Management</displayInCategory>
+	<description>Minutes of idle time before the display enters sleep on the active power profile.</description>
+	<dataType>integer</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Display Sleep Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+value=$(/usr/bin/pmset -g custom 2&gt;/dev/null \
+    | /usr/bin/awk '/^[[:space:]]*displaysleep[[:space:]]/ { print $2; exit }')
+
+echo "&lt;result&gt;${value:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

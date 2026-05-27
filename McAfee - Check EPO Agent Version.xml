@@ -1,1 +1,27 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>McAfee - Check EPO Agent Version</displayName>	<displayInCategory>Security Reporting</displayInCategory>	<dataType>string</dataType>	<description>This attribute will report the version of the McAfee EPO Agent installed on the client computer.</description>	<scriptContentsMac>#!/bin/sh#Reports the version of the McAfee epO Agent installed on the client computer.#Data Type in JSS for this script should be set to: stringVersion=`cat /etc/cma.d/EPOAGENT3700MACX/config.xml | egrep "<Version>.*</Version>" |sed -e "s/<Version>\(.*\)<\/Version>/\1/"|tr "|" " "`echo '<result>'$Version'</result>'	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>McAfee - Check EPO Agent Version</displayName>
+	<displayInCategory>Security Reporting</displayInCategory>
+	<dataType>string</dataType>
+	<description>Returns the installed Trellix (formerly McAfee) ePO Agent version, or "Not installed".</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Trellix/McAfee ePO Agent Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# McAfee rebranded as Trellix in 2022. The agent ships under /Library/McAfee
+# (legacy) or /Library/Trellix (post-rebrand) and the directory name
+# encodes the agent generation (EPOAGENT3700MACX, EPOAGENT5700MACX, etc.).
+
+config=$(/bin/ls /etc/cma.d/EPOAGENT*/config.xml(N) 2&gt;/dev/null | /usr/bin/head -n1)
+[[ -z "$config" ]] &amp;&amp; config=$(/bin/ls /Library/McAfee/cma/scratch/etc/cma.d/EPOAGENT*/config.xml(N) /Library/Trellix/Agent/etc/cma.d/EPOAGENT*/config.xml(N) 2&gt;/dev/null | /usr/bin/head -n1)
+
+if [[ -z "$config" ]]; then
+    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+    exit 0
+fi
+
+version=$(/usr/bin/xmllint --xpath 'string(//Version)' "$config" 2&gt;/dev/null)
+echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

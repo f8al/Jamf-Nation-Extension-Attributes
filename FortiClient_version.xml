@@ -1,14 +1,22 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>FortiClient version</displayName>
-<description>Returns the FortiClient version</description>
-<dataType>number</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-if [ -e /Library/Application\ Support/Fortinet/FortiClient/conf/fctinfo ]&#13;
-	then forticlientVersion=$(/bin/cat /Library/Application\ Support/Fortinet/FortiClient/conf/fctinfo | /usr/bin/cut -d"=" -f2)&#13;
-	else forticlientVersion=0&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;$forticlientVersion&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>FortiClient version</displayName>
+	<description>Returns the installed FortiClient version from the fctinfo config file, or 0 if absent.</description>
+	<dataType>number</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# FortiClient Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+info="/Library/Application Support/Fortinet/FortiClient/conf/fctinfo"
+
+if [[ -f "$info" ]]; then
+    version=$(/usr/bin/awk -F'=' '/^version=/ { print $2; exit }' "$info")
+    [[ -z "$version" ]] &amp;&amp; version=$(/usr/bin/cut -d'=' -f2 "$info" | /usr/bin/head -n1)
+    echo "&lt;result&gt;${version:-0}&lt;/result&gt;"
+else
+    echo "&lt;result&gt;0&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

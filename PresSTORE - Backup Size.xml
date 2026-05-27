@@ -1,20 +1,33 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute><displayName>PresSTORE - Backup Size   </displayName><displayInCategory>Backup</displayInCategory><dataType>date</dataType><description>This attribute displays the size of the PresSTORE archive. This attribute is compatible with PresSTORE 4.3 and higher. This attribute applies to Mac only.
-</description><scriptContentsMac>#!/bin/sh
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>PresSTORE - Backup Size</displayName>
+	<displayInCategory>Backup</displayInCategory>
+	<dataType>date</dataType>
+	<description>Total size of the PresSTORE archive (KB), or "Not installed".</description>
+	<scriptContentsMac>#!/bin/zsh
 
-if [ -f /usr/local/aw/bin/nsdchat ]; then 
-    cd /usr/local/aw
-    workstation=`bin/nsdchat -c Server names`
-    size=`bin/nsdchat -c Server $workstation totalkbytes`
+# Updated by SecurityShrimp 2026
+# PresSTORE - Backup Size Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Archiware PresSTORE installs its CLI (nsdchat) under /usr/local/aw on
+# both Intel and Apple Silicon. Modern PresSTORE is now sold as P5 with
+# the same CLI path.
 
-    if [ "$size" == "" ]; then
-        echo "&lt;result&gt;O KB&lt;/result&gt;"
-    else
-        echo "&lt;result&gt;$size KB&lt;/result&gt;"
-    fi
+nsdchat="/usr/local/aw/bin/nsdchat"
 
-else 
-    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+if [[ ! -x "$nsdchat" ]]; then
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+	exit 0
 fi
 
-</scriptContentsMac><scriptContentsWin>
-</scriptContentsWin></extensionAttribute>
+cd /usr/local/aw 2&gt;/dev/null || exit 0
+workstation=$("$nsdchat" -c Server names 2&gt;/dev/null)
+size=$("$nsdchat" -c Server "$workstation" totalkbytes 2&gt;/dev/null)
+
+if [[ -z "$size" ]]; then
+	echo "&lt;result&gt;0 KB&lt;/result&gt;"
+else
+	echo "&lt;result&gt;${size} KB&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

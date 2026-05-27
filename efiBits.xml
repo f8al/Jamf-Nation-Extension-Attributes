@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>EFI Bits</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>Returns returns the Mac's EFI bits.</description>
-  <scriptContentsMac>#!/bin/bash
+	<displayName>EFI Bits</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Returns the Mac's firmware ABI width (EFI32 or EFI64). N/A on Apple Silicon, which boots iBoot rather than EFI.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-# returns the Mac's EFI bits
+# Updated by SecurityShrimp 2026
+# EFI Bits Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel only
 
-echo "&lt;result&gt;"`ioreg -l -p IODeviceTree | awk '/firmware-abi/ { split($0, line, "\""); printf("%s\n", line[4]); }'`"&lt;/result&gt;"</scriptContentsMac>
+if [[ "$(/usr/bin/uname -m)" == "arm64" ]]; then
+    echo "&lt;result&gt;N/A&lt;/result&gt;"
+    exit 0
+fi
+
+bits=$(/usr/sbin/ioreg -l -p IODeviceTree 2&gt;/dev/null \
+    | /usr/bin/awk -F'"' '/firmware-abi/ { print $4; exit }')
+
+echo "&lt;result&gt;${bits:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

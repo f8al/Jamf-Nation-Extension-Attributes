@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>BASH Version</displayName>
-<description>Find the version of BASH installed.  </description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-##################################################################&#13;
-# Extension Attribute checks version of BASH installed&#13;
-# Cobbled together from other's hard work by Christopher Miller&#13;
-# for ITSD-ISS of JHU-APL, Dated 2014-10-03&#13;
-##################################################################&#13;
-&#13;
-BASH_Version=$(/bin/bash --version | awk -F'[ |(]' '/version/{print $4}')&#13;
-&#13;
-echo "&lt;result&gt;$BASH_Version&lt;/result&gt;"&#13;
-&#13;
-exit 0</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>BASH Version</displayName>
+	<description>Returns the version of /bin/bash that ships with the system. Note: macOS still bundles bash 3.2 for legacy compatibility; zsh is the default user shell.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# BASH Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# /bin/bash remains shipped at version 3.2.x for license reasons. Newer
+# bash builds typically live at /opt/homebrew/bin/bash (Apple Silicon) or
+# /usr/local/bin/bash (Intel) when installed via Homebrew.
+
+version=$(/bin/bash --version 2&gt;/dev/null | /usr/bin/awk '/version/ { print $4; exit }')
+
+echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

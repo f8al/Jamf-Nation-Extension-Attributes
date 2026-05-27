@@ -1,88 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Time Machine - Destination Encryption Status</displayName>
-<description>This EA determines encryption status of Time Machine destination&#13;
-&#13;
-NOTE - This has only been tested on OS X 10.9 and 10.10 !!!!!&#13;
-&#13;
-Possible results will be:&#13;
-&#13;
-Yes&#13;
-No&#13;
-NA&#13;
-Offline&#13;
-Offline - Encrypted - &lt;timestamp&gt;&#13;
-Offline - Not Encrypted - &lt;timestamp&gt;&#13;
-&#13;
-It is best to use this alongside other Time Machine EA's - like "Time Machine - Enabled" and/or "Time Machine - Destination"&#13;
-  </description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-# EA to determine encryption status of Time Machine destination&#13;
-# NOTE - This has only been tested on OS X 10.9 and 10.10 !!!!!&#13;
-# Please set the value of the variable below to suit your environment&#13;
-&#13;
-tmEncryptionPreferenceDomain='/Library/Preferences/com.capitalone.ds.cof.TimeMachineCheck'&#13;
-&#13;
-# Summary of Results:&#13;
-#  &#13;
-# NA	=	Time Machine is not enabled or the destination is a network directory.&#13;
-# Yes	=	Drive is online and encrypted  (a preference file is then written to record encryption status with time stamp)&#13;
-# No	=	Drive is online and not encrypted  (a preference file is then written to record encryption status with time stamp)&#13;
-# Offline	=	Drive is not online, but we don’t know encryption status&#13;
-# Offline	=	Encrypted - &lt;timestamp&gt; - drive is offline, but we read values from the preference file that was written&#13;
-# Offline	=	Not Encrypted - &lt;timestamp&gt; - drive is offline, but we read values from the preference file that was written &#13;
- &#13;
-&#13;
-###############################################&#13;
-# Please do not change anything below this line&#13;
-###############################################&#13;
-&#13;
-# Setting IFS Env to only use new lines as field seperator &#13;
-IFS=$'\n' &#13;
-&#13;
-enabled=`/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup`&#13;
-	&#13;
-if [ "$enabled" == "1" ]&#13;
-	then &#13;
-		volumeMountPoint=`/usr/bin/tmutil destinationinfo | grep "Mount Point" | awk -F ": " '{print $2}'`&#13;
-		volumeType=`/usr/bin/tmutil destinationinfo | grep "Kind" | awk -F ": " '{print $2}'`&#13;
-		if [ "$volumeType" == "Local" ]&#13;
-			then&#13;
-				if [ -d "$volumeMountPoint" ]&#13;
-					then &#13;
-						if [[ `/usr/sbin/diskutil info $volumeMountPoint | grep "Encrypted:"` ]]&#13;
-							then &#13;
-								result=`/usr/sbin/diskutil info $volumeMountPoint | grep "Encrypted:" | awk -F "Encrypted:" '{print $2}' |  sed -e 's/^[ \t]*//'`&#13;
-								if [ "$result" == "Yes" ]&#13;
-									then &#13;
-										/usr/bin/defaults write $tmEncryptionPreferenceDomain timestamp `date +%Y%m%d%H%M%S`&#13;
-										/usr/bin/defaults write $tmEncryptionPreferenceDomain status "Encrypted"&#13;
-									else&#13;
-										/usr/bin/defaults write $tmEncryptionPreferenceDomain timestamp `date +%Y%m%d%H%M%S`&#13;
-										/usr/bin/defaults write $tmEncryptionPreferenceDomain status "Not Encrypted"&#13;
-								fi&#13;
-							else &#13;
-								result="No"&#13;
-								/usr/bin/defaults write $tmEncryptionPreferenceDomain timestamp `date +%Y%m%d%H%M%S`&#13;
-								/usr/bin/defaults write $tmEncryptionPreferenceDomain status "Not Encrypted"&#13;
-						fi&#13;
-					else &#13;
-						if [ -f $tmEncryptionPreferenceDomain.plist ]&#13;
-							then &#13;
-								timestamp=`/usr/bin/defaults read $tmEncryptionPreferenceDomain timestamp`&#13;
-								encryptionStatus=`/usr/bin/defaults read $tmEncryptionPreferenceDomain status`&#13;
-								result="Offline - $encryptionStatus - $timestamp"&#13;
-							else result="Offline"&#13;
-						fi&#13;
-				fi&#13;
-			else result="NA"&#13;
-		fi&#13;
-	else result="NA"&#13;
-fi&#13;
-&#13;
-&#13;
-echo "&lt;result&gt;$result&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Time Machine - Destination Encryption Status</displayName>
+	<description>Reports the encryption status of the Time Machine destination. Returns Yes / No / NA / Offline (with cached status if available).</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Time Machine Destination Encryption Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# CoreStorage is gone on modern macOS — every disk is APFS or HFS+. We
+# read the destination's APFS encryption status from diskutil's plist
+# output. The script caches the last-known state in a preference file so
+# we can still report something useful when the drive is offline.
+
+tmCache="/Library/Preferences/com.capitalone.ds.cof.TimeMachineCheck"
+
+if ! /usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup 2&gt;/dev/null | /usr/bin/grep -q "^1$"; then
+	echo "&lt;result&gt;NA&lt;/result&gt;"
+	exit 0
+fi
+
+info=$(/usr/bin/tmutil destinationinfo 2&gt;/dev/null)
+mount=$(echo "$info" | /usr/bin/awk -F': ' '/Mount Point/ { print $2; exit }')
+kind=$(echo "$info" | /usr/bin/awk -F': ' '/Kind[[:space:]]+:/ { print $2; exit }')
+
+if [[ "$kind" != "Local" ]]; then
+	echo "&lt;result&gt;NA&lt;/result&gt;"
+	exit 0
+fi
+
+if [[ -n "$mount" &amp;&amp; -d "$mount" ]]; then
+	encrypted=$(/usr/sbin/diskutil info -plist "$mount" 2&gt;/dev/null \
+		| /usr/bin/plutil -extract Encryption raw - 2&gt;/dev/null)
+	case "$encrypted" in
+		true|1)
+			/usr/bin/defaults write "$tmCache" status "Encrypted"
+			/usr/bin/defaults write "$tmCache" timestamp "$(/bin/date +%Y%m%d%H%M%S)"
+			echo "&lt;result&gt;Yes&lt;/result&gt;"
+			;;
+		false|0)
+			/usr/bin/defaults write "$tmCache" status "Not Encrypted"
+			/usr/bin/defaults write "$tmCache" timestamp "$(/bin/date +%Y%m%d%H%M%S)"
+			echo "&lt;result&gt;No&lt;/result&gt;"
+			;;
+		*) echo "&lt;result&gt;Unknown&lt;/result&gt;" ;;
+	esac
+else
+	if [[ -f "$tmCache.plist" ]]; then
+		status=$(/usr/bin/defaults read "$tmCache" status 2&gt;/dev/null)
+		stamp=$(/usr/bin/defaults read "$tmCache" timestamp 2&gt;/dev/null)
+		echo "&lt;result&gt;Offline - ${status:-Unknown} - ${stamp:-Unknown}&lt;/result&gt;"
+	else
+		echo "&lt;result&gt;Offline&lt;/result&gt;"
+	fi
+fi
+</scriptContentsMac>
 </extensionAttribute>

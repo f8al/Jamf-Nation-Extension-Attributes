@@ -1,1 +1,32 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Current User FaceTime ID</displayName>	<displayInCategory>User Information</displayInCategory>	<description>This attribute displays the active FaceTime login ID of the current user.  This attribute applies only to Mac.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shloginID=`/usr/libexec/plistbuddy -c Print ~/Library/Preferences/com.apple.imservice.FaceTime.plist | grep "LoginAs" | cut -d: -f2`if [ "loginID" != "" ]; thenecho "&lt;result&gt; $loginID &lt;/result&gt;"elseecho "&lt;result&gt; No FaceTime login information found.&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Current User FaceTime ID</displayName>
+	<displayInCategory>User Information</displayInCategory>
+	<description>Returns the FaceTime LoginAs identifier for the current console user, or empty if not signed in.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# FaceTime Login ID Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Original script ran as root and used ~ — which expanded to /var/root.
+# We resolve the actual console user's home first, then read their plist.
+
+user=$(/usr/sbin/scutil &lt;&lt;&lt; "show State:/Users/ConsoleUser" 2&gt;/dev/null \
+    | /usr/bin/awk '/Name :/ &amp;&amp; ! /loginwindow/ { print $3; exit }')
+
+if [[ -z "$user" || "$user" == "root" ]]; then
+    echo "&lt;result&gt;No Console User&lt;/result&gt;"
+    exit 0
+fi
+
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+plist="$home/Library/Preferences/com.apple.imservice.FaceTime.plist"
+
+if [[ -f "$plist" ]]; then
+    id=$(/usr/bin/defaults read "$plist" LoginAs 2&gt;/dev/null)
+fi
+
+echo "&lt;result&gt;${id:-No FaceTime login information found.}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

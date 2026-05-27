@@ -1,1 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Computer Sleep</displayName>	<displayInCategory>Power Management</displayInCategory>	<description>This attribute displays the number of minutes before the computer sleeps on the active power management profile.</description>	<dataType>integer</dataType>	<scriptContentsMac>#!/bin/shecho "&lt;result&gt;`/usr/bin/pmset -g 2>&amp;1 | grep -w sleep | awk '{print $2}'`&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Computer Sleep</displayName>
+	<displayInCategory>Power Management</displayInCategory>
+	<description>Minutes of idle time before the computer enters sleep on the active power profile.</description>
+	<dataType>integer</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Computer Sleep Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# pmset -g custom is the documented way to read the active profile's
+# sleep timer. The legacy "pmset -g" approach matched the wrong column
+# when "displaysleep" appeared first.
+
+value=$(/usr/bin/pmset -g custom 2&gt;/dev/null \
+    | /usr/bin/awk '/^[[:space:]]*sleep[[:space:]]/ { print $2; exit }')
+
+echo "&lt;result&gt;${value:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

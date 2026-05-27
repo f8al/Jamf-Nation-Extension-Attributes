@@ -1,1 +1,34 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Deep Freeze - Thawed Menu Bar Icon Status</displayName>	<displayInCategory>System State Management</displayInCategory>	<description>This attribute returns the Deep Freeze setting for displaying an icon in the menu bar when thawed.  "Enabled" means that the Deep Freeze menu bar item will be displayed on a machine with a thawed drive.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shdfUsername="EditFromTemplate_DeepFreeze_Service_Account_Username"dfPassword="EditFromTemplate_DeepFreeze_Service_Account_Password"if [ -f "/Library/Application Support/Faronics/Deep Freeze/CLI" ]; thenresult=`/Library/Application\ Support/Faronics/Deep\ Freeze/CLI "$dfUsername" "$dfPassword" status | grep "HIDE THAWED ICON IN MENU BAR" | grep "FALSE"`if [ "$result" == "" ]; then	result="Disabled"else	result="Enabled"fi	fiecho "&lt;result&gt;$result&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Deep Freeze - Thawed Menu Bar Icon Status</displayName>
+	<displayInCategory>System State Management</displayInCategory>
+	<description>Whether the Deep Freeze menu bar icon is shown when a drive is Thawed.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Deep Freeze - Thawed Menu Bar Icon Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Requires a Deep Freeze service account; populate the placeholders before
+# deployment. Embedding credentials in EAs is not best practice — prefer
+# a Jamf script parameter or a credentials-on-disk lookup if available.
+
+dfUsername="EditFromTemplate_DeepFreeze_Service_Account_Username"
+dfPassword="EditFromTemplate_DeepFreeze_Service_Account_Password"
+cli="/Library/Application Support/Faronics/Deep Freeze/CLI"
+
+if [[ ! -x "$cli" ]]; then
+    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+    exit 0
+fi
+
+match=$("$cli" "$dfUsername" "$dfPassword" status 2&gt;/dev/null \
+    | /usr/bin/grep "HIDE THAWED ICON IN MENU BAR" | /usr/bin/grep "FALSE")
+
+if [[ -z "$match" ]]; then
+    echo "&lt;result&gt;Disabled&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Enabled&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

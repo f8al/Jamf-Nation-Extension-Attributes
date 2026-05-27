@@ -1,1 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Apple Software Update - Automatically Download Updates</displayName>	<displayInCategory>Security Reporting</displayInCategory>	<dataType>string</dataType>	<description>This attribute displays the status of the Apple software update option to "Automatically Download Updates".  The value to be verified will need to be specified when creating this extension attribute.  Example: "false" verifies that the setting is disabled.  This extension attribute requires this preference be set using Managed Preferences (MCX).</description>	<scriptContentsMac>#!/bin/shdesiredValue="EditFromTemplate_Desired_Value_-_Example:_false"currentUser=`last -1 -t console | awk '{print $1}'`appDomain="com.apple.SoftwareUpdate.ByHost"keyName="AutomaticDownload"result=""tmpResult="`dscl . mcxread /Users/$currentUser \"$appDomain\" \"$keyName\" |grep Value:| sed 's/Value\: //g'`"if [ "$tmpResult" == "1" ]; thenresult="true"elseif [ "$tmpResult" == "0" ]; then	result="false"else	if [ "$tmpResult" == "" ]; then		result="Domain or Key Not Found"	else		result="$tmpResult"	fififiif [ "$result" == "$desiredValue" ]; thenecho "&lt;result&gt;Pass ($result)&lt;/result&gt;"elseecho "&lt;result&gt;Fail ($result)&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Apple Software Update - Automatically Download Updates</displayName>
+	<displayInCategory>Security Reporting</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports whether macOS Software Update is configured to automatically download updates (true/false).</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Software Update - Automatically Download Updates Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# The legacy "dscl . mcxread" approach reads MCX, which has been deprecated
+# since macOS 10.7 and is non-functional under modern configuration profile
+# management. Reading the canonical preference directly works whether the
+# value is set by user, MDM profile, or default.
+
+value=$(/usr/bin/defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticDownload 2&gt;/dev/null)
+
+case "$value" in
+    1) echo "&lt;result&gt;true&lt;/result&gt;" ;;
+    0) echo "&lt;result&gt;false&lt;/result&gt;" ;;
+    *) echo "&lt;result&gt;Not Set&lt;/result&gt;" ;;
+esac
+</scriptContentsMac>
+</extensionAttribute>

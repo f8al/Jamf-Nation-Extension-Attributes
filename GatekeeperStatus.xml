@@ -4,24 +4,22 @@
   <displayName>Gatekeeper Status</displayName>
   <displayInCategory/>
   <dataType>string</dataType>
-  <description>This will display the current status of Gatekeeper (visible under System Preferences &gt; Security &amp; Privacy &gt; General).</description>
-  <scriptContentsMac>#!/bin/sh
+  <description>Reports whether Gatekeeper assessments are enabled (visible under System Settings &gt; Privacy &amp; Security).</description>
+  <scriptContentsMac>#!/bin/zsh
 
-TESTFILE="/usr/sbin/jamf/"
+# Updated by SecurityShrimp 2026
+# Gatekeeper Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Returns "On" or "Off". The legacy "Anywhere" option was removed from the
+# GUI in macOS 13, so it is not reported as a separate state. spctl --status
+# is the only spctl invocation Apple still supports for this check.
 
-CMD="`spctl -v -a $TESTFILE 2&gt;&amp;1`"
+status=$(/usr/sbin/spctl --status 2&gt;/dev/null)
 
-case "$CMD" in
-	*rejected*)
-		STATUS="Mac App Store"
-	;;	
-	*override=security*)
-		STATUS="Anywhere"
-	;;
-	*)
-		STATUS="Mac App Store and identified developers"	
-	;;
+case "$status" in
+    *"assessments enabled"*)  echo "&lt;result&gt;On&lt;/result&gt;" ;;
+    *"assessments disabled"*) echo "&lt;result&gt;Off&lt;/result&gt;" ;;
+    *)                        echo "&lt;result&gt;Unknown&lt;/result&gt;" ;;
 esac
-
-echo "&lt;result&gt;$STATUS&lt;/result&gt;"</scriptContentsMac>
+</scriptContentsMac>
 </extensionAttribute>

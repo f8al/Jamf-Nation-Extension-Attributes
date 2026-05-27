@@ -1,20 +1,27 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>Microsoft AutoUpdate</displayName>
-<description>Returns the installed version of Microsoft Sharepoint Browser</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-ExtensionVersion=""&#13;
-if [ -f /Library/Application\ Support/Microsoft/MAU2.0/Microsoft\ AutoUpdate.app/Contents/Info.plist ]; then&#13;
-	ExtensionVersion=$(defaults read /Library/Application\ Support/Microsoft/MAU2.0/Microsoft\ AutoUpdate.app/Contents/Info.plist CFBundleShortVersionString)&#13;
-fi&#13;
-&#13;
-if [ "$ExtensionVersion" == "" ]; then&#13;
-	ExtensionVersion="Not Installed"&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;$ExtensionVersion&lt;/result&gt;"&#13;
-&#13;
-exit 0</scriptContentsMac>
-<scriptContentsWindows/>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Microsoft AutoUpdate</displayName>
+	<description>Returns the installed Microsoft AutoUpdate (MAU) version.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Microsoft AutoUpdate Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# MAU has moved bundle paths several times. Modern MAU (4.x) lives in
+# /Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app.
+
+for plist in \
+    "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/Info.plist" \
+    "/Applications/Microsoft AutoUpdate.app/Contents/Info.plist"
+do
+    if [[ -f "$plist" ]]; then
+        version=$(/usr/bin/defaults read "$plist" CFBundleShortVersionString 2&gt;/dev/null)
+        echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+        exit 0
+    fi
+done
+
+echo "&lt;result&gt;Not Installed&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

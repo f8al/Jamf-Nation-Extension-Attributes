@@ -1,20 +1,22 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>R</displayName>
-<description>Returns the installed version of R</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-ExtensionVersion=""&#13;
-if [ -f /Library/Frameworks/R.framework/Versions/Current/Resources/Info.plist ]; then&#13;
-	ExtensionVersion=$(defaults read  /Library/Frameworks/R.framework/Versions/Current/Resources/Info.plist  CFBundleVersion)&#13;
-fi&#13;
-&#13;
-if [ "$ExtensionVersion" == "" ]; then&#13;
-	ExtensionVersion="Not Installed"&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;$ExtensionVersion&lt;/result&gt;"&#13;
-&#13;
-exit 0</scriptContentsMac>
-<scriptContentsWindows/>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>R</displayName>
+	<description>Returns the installed R framework version (CFBundleShortVersionString), or "Not Installed".</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# R Statistical Computing Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+plist="/Library/Frameworks/R.framework/Versions/Current/Resources/Info.plist"
+
+if [[ -f "$plist" ]]; then
+	version=$(/usr/bin/defaults read "$plist" CFBundleShortVersionString 2&gt;/dev/null)
+	[[ -z "$version" ]] &amp;&amp; version=$(/usr/bin/defaults read "$plist" CFBundleVersion 2&gt;/dev/null)
+	echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Not Installed&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

@@ -1,1 +1,34 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>CheckPoint - Encryption Percentage</displayName>	<displayInCategory>Disk Encryption</displayInCategory>	<description>This attribute returns the Disk Encryption Percentage for CheckPoint on the boot disk.  This attribute template applies to CheckPoint (v 3.2).</description>	<dataType>integer</dataType>	<scriptContentsMac>#!/bin/sh #This script has been verified to work on CheckPoint (v 3.2). #Check to see if CheckPoint is installed if [ -f /usr/local/ppc-*/bin/FDEEncStatus ]; then 	result=$(/usr/local/ppc-*/bin/FDEEncStatus | sed 's/Volume:/\Volume:/g' | grep -w "Volume: /" | grep "Status: Encrypt" | awk '{print $7}') 	if [ "$result" == "" ]; then 		result=$(/usr/local/ppc-*/bin/FDEEncStatus | sed 's/Volume:/\Volume:/g' | grep -w "Volume: /" | grep "Status: Decrypt" | awk '{print $7}') 		if [ "$result" == "" ]; then 			echo "&lt;result&gt;0&lt;/result&gt;" 		else 			echo "&lt;result&gt;$result&lt;/result&gt;" 		fi 	else		echo "&lt;result&gt;$result&lt;/result&gt;" 	fielse	echo "&lt;result&gt;Not installed&lt;/result&gt;" fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>CheckPoint - Encryption Percentage</displayName>
+	<displayInCategory>Disk Encryption</displayInCategory>
+	<description>Returns CheckPoint Full Disk Encryption progress for the boot volume, 0-100.</description>
+	<dataType>integer</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# CheckPoint Encryption Percentage Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel only (Apple Silicon returns N/A)
+# Current CheckPoint FDE Mac installer drops FDEEncStatus under /usr/local
+# in a version-specific directory (originally ppc-* "Pointsec Personal
+# Computer"; modern builds use checkpoint-*). We glob for either.
+
+if [[ "$(/usr/bin/uname -m)" == "arm64" ]]; then
+    echo "&lt;result&gt;N/A&lt;/result&gt;"
+    exit 0
+fi
+
+bin=$(/bin/ls /usr/local/ppc-*/bin/FDEEncStatus(N) /usr/local/checkpoint*/bin/FDEEncStatus(N) 2&gt;/dev/null | /usr/bin/head -n1)
+if [[ -z "$bin" ]]; then
+    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+    exit 0
+fi
+
+status=$("$bin" 2&gt;/dev/null | /usr/bin/awk '
+    /Volume:[[:space:]]*\/[[:space:]]/ { vol=1; next }
+    vol &amp;&amp; /Status:[[:space:]]*Encrypt/ { for (i=1; i&lt;=NF; i++) if ($i ~ /%/) print $i; vol=0 }
+')
+status=${status//%/}
+echo "&lt;result&gt;${status:-0}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

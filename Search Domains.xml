@@ -1,1 +1,26 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Search Domains</displayName>	<displayInCategory>Networking</displayInCategory>	<description>This attribute lists all search domains set on the active network connection.  This attribute applies to both Mac and Windows.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shOS=`/usr/bin/sw_vers -productVersion | /usr/bin/colrm 5`if [[ "$OS" &lt; "10.5" ]]; thenif [ -f /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Support/networksetup ];then			NetworkInterface=`/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Support/networksetup -listnetworkserviceorder 2>&amp;1 | grep $(/usr/sbin/netstat -rn 2>&amp;1 | /usr/bin/grep -m 1 'default' | /usr/bin/awk '{ print $6 }') | sed -e "s/.*Port: //g" -e "s/,.*//g"`	echo "&lt;result&gt;`/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Support/networksetup -getsearchdomains "$NetworkInterface" 2>&amp;1`&lt;/result&gt;"else	echo "&lt;result&gt;The networksetup binary is not present on this machine.&lt;/result&gt;"fielseNetworkInterface=`/usr/sbin/networksetup -listnetworkserviceorder 2>&amp;1 | grep $(/usr/sbin/netstat -rn 2>&amp;1 | /usr/bin/grep -m 1 'default' | /usr/bin/awk '{ print $6 }') | sed -e "s/.*Port: //g" -e "s/,.*//g"`echo "&lt;result&gt;`/usr/sbin/networksetup -getsearchdomains "$NetworkInterface" 2>&amp;1`&lt;/result&gt;"fi	</scriptContentsMac>   <scriptTypeWindows>VBScript</scriptTypeWindows>	<scriptContentsWindows>On Error Resume NextstrComputer = "." Set objWMIService = GetObject("winmgmts:\\" &amp; strComputer &amp; "\root\CIMV2") Set colItems = objWMIService.ExecQuery("SELECT * FROM Win32_NetworkAdapterConfiguration",,48) For Each objItem in colItemsIf objitem.ipenabled = True then    strDNSDomain = objItem.DNSDomain    End IfNextWScript.Echo "&lt;result&gt;" &amp; strDNSDomain &amp; "&lt;/result&gt;"</scriptContentsWindows></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Search Domains</displayName>
+	<displayInCategory>Networking</displayInCategory>
+	<description>Returns the DNS search domains configured for the active network service.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Search Domains Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# scutil --dns surfaces the active search domains uniformly across
+# interfaces, including VPN and multiple resolvers.
+
+domains=$(/usr/sbin/scutil --dns 2&gt;/dev/null \
+	| /usr/bin/awk '
+		/^resolver #[0-9]+$/ { scoped=0 }
+		/if_index/ { scoped=1 }
+		scoped &amp;&amp; /search domain\[[0-9]+\] :/ { print $4 }
+	' \
+	| /usr/bin/sort -u \
+	| /usr/bin/paste -sd ',' -)
+
+echo "&lt;result&gt;${domains:-None}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

@@ -1,1 +1,44 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Current AirPort Network</displayName>	<displayInCategory>Networking</displayInCategory>	<description>This attribute displays the network the AirPort is joined to.  This attribute applies to Mac only.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/sh# Determine the OS version since the networksetup command differs on OSOS=`/usr/bin/sw_vers -productVersion | /usr/bin/colrm 5`if [[ "$OS" &lt; "10.5" ]]; then# Ensure that the networksetup link exists on 10.4 and earlierif [ -f /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Support/networksetup ];then	result=`/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Support/networksetup -getairportnetwork | sed 's/Current AirPort Network: //g'`else	result=`The networksetup binary is not present on this machine.`fielif [ "$OS" == "10.5" ]; thenresult=`/usr/sbin/networksetup -getairportnetwork | sed 's/Current AirPort Network: //g'`elseresult=`/usr/sbin/networksetup -getairportnetwork AirPort | sed 's/Current AirPort Network: //g'`fi# Ensure that AirPort was foundhasAirPort=`echo "$result" | grep "Error"`# Report the resultif [ "$hasAirPort" == "" ]; thenecho "&lt;result&gt;$result&lt;/result&gt;"elseecho "&lt;result&gt;No AirPort Device Found.&lt;/result&gt;"fi	</scriptContentsMac>   <scriptTypeWindows>VBScript</scriptTypeWindows>	<scriptContentsWindows>	</scriptContentsWindows></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Current Wi-Fi Network</displayName>
+	<displayInCategory>Networking</displayInCategory>
+	<description>Returns the currently joined Wi-Fi SSID, or a status string ("Wi-Fi Off", "Not Associated", "No Wi-Fi Device Found").</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Current Wi-Fi Network Extension Attribute (formerly "AirPort Network")
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Apple deprecated /usr/sbin/airport in macOS 14 and removed reliable SSID
+# reporting via "networksetup -getairportnetwork" for non-admins (macOS 14+
+# returns redacted SSIDs unless the calling process has Location Services
+# permission). We try networksetup; if that reports a redacted SSID we
+# fall back to ipconfig getsummary which still returns the real SSID when
+# called as root (which Jamf EAs do).
+
+device=$(/usr/sbin/networksetup -listallhardwareports 2&gt;/dev/null \
+    | /usr/bin/awk '/Hardware Port: Wi-Fi/ { getline; print $2; exit }')
+
+if [[ -z "$device" ]]; then
+    echo "&lt;result&gt;No Wi-Fi Device Found&lt;/result&gt;"
+    exit 0
+fi
+
+raw=$(/usr/sbin/networksetup -getairportnetwork "$device" 2&gt;/dev/null)
+
+case "$raw" in
+    *"power is currently off"*) echo "&lt;result&gt;Wi-Fi Off&lt;/result&gt;"; exit 0 ;;
+    "You are not associated"*)  echo "&lt;result&gt;Not Associated&lt;/result&gt;"; exit 0 ;;
+esac
+
+ssid=${raw#Current Wi-Fi Network: }
+
+# macOS 14+ may redact SSID. ipconfig getsummary reports the real value.
+if [[ "$ssid" == "Unknown" || "$ssid" == "&lt;redacted&gt;" || -z "$ssid" ]]; then
+    ssid=$(/usr/sbin/ipconfig getsummary "$device" 2&gt;/dev/null \
+        | /usr/bin/awk -F': ' '/ SSID_STR/ { print $2; exit }')
+fi
+
+echo "&lt;result&gt;${ssid:-Not Associated}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

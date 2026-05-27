@@ -1,1 +1,28 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>VirusScan - Virus Definition Date</displayName>	<displayInCategory>AntiVirus</displayInCategory>	<description>This attribute returns the Virus Definitions Date for McAfee VirusScan.  This attribute template applies to McAfee VirusScan (v8.0).</description>	<dataType>date</dataType>	<scriptContentsMac>#!/bin/sh#This script has been verified to work on McAfee VirusScan (v8.0).#Check to see if McAfee VirusScan is installedif [ -f "/Library/Preferences/com.Mcafee.VirusScan.plist" ]; thenresult=`/usr/bin/defaults read /Library/Preferences/com.Mcafee.VirusScan Update_DAT_Time | awk '{print $1, $2}'`echo "&lt;result&gt;$result&lt;/result&gt;"elseecho "&lt;result&gt;Not installed&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>VirusScan - Virus Definition Date</displayName>
+	<displayInCategory>AntiVirus</displayInCategory>
+	<description>Returns McAfee/Trellix VirusScan (Endpoint Security for Mac) virus-definition date.</description>
+	<dataType>date</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# McAfee/Trellix VirusScan Definition Date Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# McAfee rebranded as Trellix. The Mac product is now "Endpoint Security
+# for Mac"; the legacy plist key Update_DAT_Time is preserved for
+# backwards compatibility on most modern installs.
+
+for plist in \
+	/Library/Preferences/com.Mcafee.VirusScan.plist \
+	/Library/Preferences/com.trellix.endpoint.epm.macos.plist
+do
+	if [[ -f "$plist" ]]; then
+		result=$(/usr/bin/defaults read "${plist%.plist}" Update_DAT_Time 2&gt;/dev/null | /usr/bin/awk '{print $1, $2}')
+		[[ -n "$result" ]] &amp;&amp; { echo "&lt;result&gt;$result&lt;/result&gt;"; exit 0; }
+	fi
+done
+
+echo "&lt;result&gt;Not installed&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

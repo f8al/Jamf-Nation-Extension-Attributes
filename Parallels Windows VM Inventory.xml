@@ -1,6 +1,31 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Parallels Windows VM Application Inventory</displayName>	<displayInCategory>Virtualization</displayInCategory>	<description>This attribute displays the inventory of a Windows virtual machine in Parallels Desktop for Mac.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shcurrentUser=`ls -l /dev/console | awk {'print $3'}`
-sharedApplicationDir=`ls /Users/$currentUser/Applications\ \(Parallels\)/ | grep {`
-sharedBaseDir="/Users/$currentUser/Applications (Parallels)"
-individualApplicationDir=
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Parallels Windows VM Application Inventory</displayName>
+	<displayInCategory>Virtualization</displayInCategory>
+	<description>Lists Windows applications published via Parallels Desktop for Mac's Coherence/Shared Applications folder.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
 
-echo "&lt;result&gt;`ls "$baseDir/$applicationDir" | grep .app`&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+# Updated by SecurityShrimp 2026
+# Parallels Windows VM Inventory Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Parallels publishes Windows apps as .app shims into
+# ~/Applications (Parallels)/{VM Name}/. The original script had
+# undefined variables; we walk every VM's shared apps folder.
+
+user=$(/usr/bin/stat -f %Su /dev/console 2&gt;/dev/null)
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+
+baseDir="$home/Applications (Parallels)"
+
+if [[ ! -d "$baseDir" ]]; then
+	echo "&lt;result&gt;Not Installed&lt;/result&gt;"
+	exit 0
+fi
+
+apps=$(/usr/bin/find "$baseDir" -maxdepth 2 -name '*.app' -not -name '*Tools*' 2&gt;/dev/null \
+	| /usr/bin/awk -F/ '{print $NF}' | /usr/bin/sort -u | /usr/bin/paste -sd '\n' -)
+
+echo "&lt;result&gt;${apps:-No VMs Configured}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

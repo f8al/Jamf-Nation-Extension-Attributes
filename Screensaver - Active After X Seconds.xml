@@ -1,1 +1,31 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Screensaver - Active After X Seconds</displayName>	<displayInCategory>Security Reporting</displayInCategory>	<dataType>string</dataType>	<description>This attribute displays the current Screensaver idle time.  The value to be verified will need to be specified when creating this extension attribute.  Example: "300" verifies that the homepage is set to run after the machine is idle for 5 minutes.</description>	<scriptContentsMac>#!/bin/shdesiredValue="EditFromTemplate_Desired_Value_-_Example:_300"currentUser=`last -1 -t console | awk '{print $1}'`appDomain="com.apple.screensaver.ByHost"keyName="idleTime"result=`/usr/bin/dscl . mcxread /Users/$currentUser "$appDomain" "$keyName" |grep Value:| sed 's/Value\: //g'`if [ "$result" == "$desiredValue" ]; then	echo "&lt;result&gt;Pass ($result)&lt;/result&gt;"elif [ "$result" == "" ]; then	echo "&lt;result&gt;Fail (Domain or Key Not Found)&lt;/result&gt;"else	echo "&lt;result&gt;Fail ($result)&lt;/result&gt;"fi</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Screensaver - Active After X Seconds</displayName>
+	<displayInCategory>Security Reporting</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports the screensaver idle time (seconds) for the current console user. Edit desiredValue before deployment.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Screensaver Idle Time Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+desiredValue="EditFromTemplate_Desired_Value"
+
+user=$(/usr/sbin/scutil &lt;&lt;&lt; "show State:/Users/ConsoleUser" 2&gt;/dev/null \
+	| /usr/bin/awk '/Name :/ &amp;&amp; ! /loginwindow/ { print $3; exit }')
+[[ -z "$user" || "$user" == "root" ]] &amp;&amp; user=$(/usr/bin/defaults read /Library/Preferences/com.apple.loginwindow lastUserName 2&gt;/dev/null)
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+
+raw=$(/usr/bin/defaults read "/Library/Managed Preferences/$user/com.apple.screensaver" idleTime 2&gt;/dev/null)
+[[ -z "$raw" ]] &amp;&amp; raw=$(/usr/bin/sudo -u "$user" /usr/bin/defaults -currentHost read com.apple.screensaver idleTime 2&gt;/dev/null)
+
+result="${raw:-Domain or Key Not Found}"
+
+if [[ "$result" == "$desiredValue" ]]; then
+	echo "&lt;result&gt;Pass ($result)&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Fail ($result)&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

@@ -1,1 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Adobe Update Server</displayName>	<displayInCategory>Software Updates</displayInCategory>	<description>This attribute returns the DNS/IP address of the Adobe Update Server that is set on the client machine.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shupdaterConfigFile="/Library/Application Support/Adobe/AAMUpdater/1.0/AdobeUpdater.Overrides"if [ -f "$updaterConfigFile" ]; thenresult=`/bin/cat "$updaterConfigFile" | grep -m 1 "Domain" | sed -e 's/&lt;[^&gt;]*&gt;//g' | sed 's:http\://::g' | awk '{print $1}'`echo "&lt;result&gt;$result&lt;/result&gt;"elseecho "&lt;result&gt;No Adobe Update Server Set&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Adobe Update Server</displayName>
+	<displayInCategory>Software Updates</displayInCategory>
+	<description>Returns the DNS/IP of the Adobe Update Server configured via AAMUpdater overrides.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Adobe Update Server Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Adobe still ships overrides at the AAMUpdater path on Creative Cloud.
+
+cfg="/Library/Application Support/Adobe/AAMUpdater/1.0/AdobeUpdater.Overrides"
+
+if [[ -f "$cfg" ]]; then
+    server=$(/usr/bin/grep -m1 "Domain" "$cfg" \
+        | /usr/bin/sed -E 's/&lt;[^&gt;]*&gt;//g; s|https?://||g' \
+        | /usr/bin/awk '{print $1}')
+    echo "&lt;result&gt;${server:-Not Set}&lt;/result&gt;"
+else
+    echo "&lt;result&gt;No Adobe Update Server Set&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

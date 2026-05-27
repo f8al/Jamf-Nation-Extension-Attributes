@@ -1,75 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Chrome Extensions</displayName>
-<description>Displays Name, Version and ID of installed Google Chrome Extensions for current or last user.&#13;
-&#13;
-By default, data is displayed as:&#13;
-&#13;
-Name: Extension Name&#13;
-Version: Extension Version&#13;
-ID: Extension ID.&#13;
-&#13;
-However, if further data analysis is needed, an alternate output is available:&#13;
-&#13;
-Name;Version;ID&#13;
-&#13;
-The default output looks much prettier in the JSS, but the alternative output may be more useful.  &#13;
-&#13;
-To use the alternate output, simply comment out line:&#13;
-&#13;
-echo -e "Name: $reportedName \nVersion: $version \nID: $extID \n"&#13;
-&#13;
-And uncomment line:&#13;
-&#13;
-echo -e "$reportedName;$version;$extID"</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-# Setting IFS Env to only use new lines as field seperator &#13;
-IFS=$'\n'&#13;
-&#13;
-currentUser=`ls -l /dev/console | awk {' print $3 '}`&#13;
-lastUser=`defaults read /Library/Preferences/com.apple.loginwindow lastUserName`&#13;
-&#13;
-if [[ "$currentUser" = "" || "$currentUser" = "root" ]]&#13;
-	then userHome=`/usr/bin/dscl . -read /Users/$lastUser NFSHomeDirectory | awk -F ": " '{print $2}'`&#13;
-	else userHome=`/usr/bin/dscl . -read /Users/$currentUser NFSHomeDirectory | awk -F ": " '{print $2}'`&#13;
-fi&#13;
-&#13;
-createChromeExtList ()&#13;
-{&#13;
-for manifest in $(find "$userHome/Library/Application Support/Google/Chrome/Default/Extensions" -name 'manifest.json')&#13;
-	do &#13;
-		name=$(cat $manifest | grep '"name":' | awk -F "\"" '{print $4}')&#13;
-		if [[ `echo $name | grep "__MSG"` ]]&#13;
-			then&#13;
-				msgName="\"`echo $name | awk -F '__MSG_|__' '{print $2}'`\":"&#13;
-				if [ -f $(dirname $manifest)/_locales/en/messages.json ]&#13;
-					then reportedName=$(cat $(dirname $manifest)/_locales/en/messages.json | grep -i -A 3 "$msgName" | grep "message" | head -1 | awk -F ": " '{print $2}' | tr -d "\"")&#13;
-				elif [ -f $(dirname $manifest)/_locales/en_US/messages.json ]&#13;
-					then reportedName=$(cat $(dirname $manifest)/_locales/en_US/messages.json | grep -i -A 3 "$msgName" | grep "message" | head -1 | awk -F ": " '{print $2}' | tr -d "\"")&#13;
-				fi&#13;
-			else&#13;
-				reportedName=$(cat $manifest | grep '"name":' | awk -F "\"" '{print $4}')&#13;
-		fi&#13;
-		version=$(cat $manifest | grep '"version":' | awk -F "\"" '{print $4}')&#13;
-		extID=$(basename $(dirname $(dirname $manifest)))&#13;
-		&#13;
-		# This is the default output style - looks nice in JSS&#13;
-		# Comment out line below if you wish to use alternate output&#13;
-	 	echo -e "Name: $reportedName \nVersion: $version \nID: $extID \n"&#13;
-	 	&#13;
-	 	# This is the alternate output style - looks ugly in JSS, but possibly more useful&#13;
-	 	# Uncomment line below to use this output instead&#13;
-	 	#echo -e "$reportedName;$version;$extID"&#13;
- done&#13;
- }&#13;
-&#13;
-if [ -d "$userHome/Library/Application Support/Google/Chrome/Default/Extensions" ]&#13;
-        then result="`createChromeExtList`"&#13;
-        else result="NA"&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;$result&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Chrome Extensions</displayName>
+	<description>Lists installed Google Chrome extensions (Name, Version, ID) for the current or last console user.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Chrome Extensions Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Walks Chrome's Default/Extensions directory and parses each manifest.json
+# with python3 (ships in /usr/bin on macOS) to robustly handle localized
+# extension names that resolve via _locales/en/messages.json.
+
+user=$(/usr/sbin/scutil &lt;&lt;&lt; "show State:/Users/ConsoleUser" 2&gt;/dev/null \
+    | /usr/bin/awk '/Name :/ &amp;&amp; ! /loginwindow/ { print $3; exit }')
+[[ -z "$user" || "$user" == "root" ]] &amp;&amp; user=$(/usr/bin/defaults read /Library/Preferences/com.apple.loginwindow lastUserName 2&gt;/dev/null)
+
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+extDir="$home/Library/Application Support/Google/Chrome/Default/Extensions"
+
+if [[ ! -d "$extDir" ]]; then
+    echo "&lt;result&gt;NA&lt;/result&gt;"
+    exit 0
+fi
+
+result=$(/usr/bin/python3 - "$extDir" &lt;&lt;'PY'
+import json, os, sys, re
+ext_dir = sys.argv[1]
+out = []
+for ext_id in sorted(os.listdir(ext_dir)):
+    ext_path = os.path.join(ext_dir, ext_id)
+    if not os.path.isdir(ext_path):
+        continue
+    for ver in sorted(os.listdir(ext_path)):
+        m = os.path.join(ext_path, ver, "manifest.json")
+        if not os.path.isfile(m):
+            continue
+        try:
+            d = json.load(open(m))
+        except Exception:
+            continue
+        name = d.get("name", "")
+        version = d.get("version", "")
+        mo = re.match(r"__MSG_(.+)__", name or "")
+        if mo:
+            key = mo.group(1)
+            for locale in ("en", "en_US"):
+                lp = os.path.join(ext_path, ver, "_locales", locale, "messages.json")
+                if os.path.isfile(lp):
+                    try:
+                        msgs = json.load(open(lp))
+                        for k, v in msgs.items():
+                            if k.lower() == key.lower():
+                                name = v.get("message", name)
+                                break
+                    except Exception:
+                        pass
+                    break
+        out.append(f"Name: {name}\nVersion: {version}\nID: {ext_id}\n")
+print("\n".join(out))
+PY
+)
+
+echo "&lt;result&gt;${result:-NA}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

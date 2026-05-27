@@ -1,1 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Time Machine - Status</displayName>	<displayInCategory>Backup</displayInCategory>	<description>This attribute displays the Time Machine configuration status.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shenabled=`/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup`	if [ "$enabled" == "1" ];thenecho "&lt;result&gt;Enabled&lt;/result&gt;"elseecho "&lt;result&gt;Disabled&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Time Machine - Status</displayName>
+	<displayInCategory>Backup</displayInCategory>
+	<description>Reports Time Machine configuration status ("Enabled" or "Disabled").</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Time Machine Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+state=$(/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup 2&gt;/dev/null)
+
+if [[ "$state" == "1" ]]; then
+	echo "&lt;result&gt;Enabled&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Disabled&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

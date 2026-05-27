@@ -1,19 +1,23 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-  <displayName>Server App Caching Service Status</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>This Extension Attribute will Identify if the Server App is installed to /Applications/Server.app and if so it will report the status of the Caching Service as either STOPPED or RUNNING.</description>
-  <scriptContentsMac>#!/bin/sh
+	<displayName>Content Caching Service Status</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Reports macOS Content Caching service status as RUNNING or STOPPED.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-if [ /Applications/Server.app ]; then
+# Updated by SecurityShrimp 2026
+# Content Caching Service Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# macOS Server (Server.app) was discontinued in 2022; the Content Caching
+# service is now built into base macOS and controlled via the Sharing
+# preference pane / AssetCacheManagerUtil. The legacy serveradmin command
+# no longer exists on modern macOS.
 
-/bin/echo "&lt;result&gt;$(serveradmin status caching | awk '{print $3}'| sed s/\"//g)&lt;/result&gt;"
-
+if /usr/bin/AssetCacheManagerUtil status 2&gt;/dev/null | /usr/bin/grep -q "Activated: true"; then
+	echo "&lt;result&gt;RUNNING&lt;/result&gt;"
 else
-  /bin/echo "&lt;result&gt;Server App Not Installed&lt;/result&gt;"
-  
+	echo "&lt;result&gt;STOPPED&lt;/result&gt;"
 fi
-exit</scriptContentsMac>
+</scriptContentsMac>
 </extensionAttribute>

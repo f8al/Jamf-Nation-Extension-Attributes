@@ -1,19 +1,27 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-  <displayName>Caching Service Cache Size Limit</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>This Extension Attribute will Identify if the Server App is installed to /Applications/Server.app and if so it will report the Caching Size Limit in bytes.</description>
-  <scriptContentsMac>#!/bin/sh
+	<displayName>Caching Service Cache Size Limit</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Reports the macOS Content Caching cache size limit in bytes.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-if [ /Applications/Server.app ]; then
+# Updated by SecurityShrimp 2026
+# Caching Service Cache Size Limit Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# macOS Server (Server.app) was discontinued in 2022; the Content Caching
+# service is now built into base macOS and controlled via the Sharing
+# preference pane / AssetCacheManagerUtil. The legacy serveradmin command
+# no longer exists on modern macOS.
 
-/bin/echo "&lt;result&gt;$(serveradmin settings caching:CacheLimit | awk '{print $3}'| sed s/\"//g)&lt;/result&gt;"
+limit=$(/usr/bin/defaults read /Library/Preferences/com.apple.AssetCache CacheLimit 2&gt;/dev/null)
 
+if [[ -n "$limit" &amp;&amp; "$limit" -gt 0 ]]; then
+	echo "&lt;result&gt;${limit}&lt;/result&gt;"
+elif /usr/bin/AssetCacheManagerUtil status 2&gt;/dev/null | /usr/bin/grep -q "Activated: true"; then
+	echo "&lt;result&gt;Unlimited&lt;/result&gt;"
 else
-  /bin/echo "&lt;result&gt;Server App Not Installed&lt;/result&gt;"
-  
+	echo "&lt;result&gt;Content Caching Not Active&lt;/result&gt;"
 fi
-exit</scriptContentsMac>
+</scriptContentsMac>
 </extensionAttribute>

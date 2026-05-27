@@ -1,1 +1,28 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>ClamXav - Virus Definition Version</displayName>	<displayInCategory>AntiVirus</displayInCategory>	<description>This attribute returns the Virus Definitions Version for ClamXav.  This attribute template applies to ClamXav (v 2.0.5).</description>	<dataType>integer</dataType>	<scriptContentsMac>#!/bin/sh#This script has been verified to work on ClamXav (v 2.0.5).#Check to see if ClamXav is installedif [ -f "/usr/local/clamXav/bin/freshclam" ]; thenresult=`/usr/local/clamXav/bin/freshclam --version | sed s:/:\ :g | awk '{print $3}'`echo "&lt;result&gt;$result&lt;/result&gt;"elseecho "&lt;result&gt;Not installed&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>ClamXav - Virus Definition Version</displayName>
+	<displayInCategory>AntiVirus</displayInCategory>
+	<description>Returns the ClamXav signature database version (daily.cvd build number).</description>
+	<dataType>integer</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# ClamXav Virus Definition Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+
+for fc in \
+    "/Applications/ClamXAV.app/Contents/Resources/ScanningEngine/bin/freshclam" \
+    "/usr/local/clamXav/bin/freshclam"
+do
+    [[ -x "$fc" ]] &amp;&amp; freshclam="$fc" &amp;&amp; break
+done
+
+if [[ -z "$freshclam" ]]; then
+    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+    exit 0
+fi
+
+ver=$("$freshclam" --version 2&gt;/dev/null | /usr/bin/awk -F'/' '{print $2}')
+echo "&lt;result&gt;${ver:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

@@ -1,24 +1,36 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>Umbrella Client Status</displayName>
-<description/>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-&#13;
-if [ -f "/Library/LaunchDaemons/com.opendns.osx.RoamingClientConfigUpdater.plist" ]; then&#13;
-&#13;
-&#13;
-ps auwwx | egrep "dnscrypt|RoamingClientMenubar|dns-updater" | grep -vq egrep;&#13;
-    if [[ 0 == $? ]]; then&#13;
-        echo "&lt;result&gt;Enabled&lt;/result&gt;"&#13;
-    else&#13;
-echo "&lt;result&gt;Disabled&lt;/result&gt;"&#13;
- fi&#13;
-&#13;
-&#13;
-&#13;
-else&#13;
-echo "&lt;result&gt;Not Installed&lt;/result&gt;"&#13;
-fi</scriptContentsMac>
-<scriptContentsWindows/>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Umbrella Client Status</displayName>
+	<description>Reports the status of the Cisco Umbrella (formerly OpenDNS Roaming Client) agent: "Enabled", "Disabled", or "Not Installed".</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Cisco Umbrella Client Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# The Roaming Client was renamed Umbrella Secure Internet Gateway agent.
+# Modern installs use either the legacy /Library/LaunchDaemons plist or
+# the newer Umbrella Roaming Security daemon under
+# /Library/LaunchDaemons/com.cisco.umbrella.roamingclient.plist.
+
+found=0
+for plist in \
+	"/Library/LaunchDaemons/com.opendns.osx.RoamingClientConfigUpdater.plist" \
+	"/Library/LaunchDaemons/com.cisco.umbrella.roamingclient.plist" \
+	"/Library/LaunchDaemons/com.cisco.umbrella.csc.plist"
+do
+	[[ -f "$plist" ]] &amp;&amp; found=1 &amp;&amp; break
+done
+
+if (( ! found )); then
+	echo "&lt;result&gt;Not Installed&lt;/result&gt;"
+	exit 0
+fi
+
+if /bin/ps auxww 2&gt;/dev/null | /usr/bin/grep -E "dnscrypt|RoamingClient|dns-updater|umbrella" | /usr/bin/grep -qv grep; then
+	echo "&lt;result&gt;Enabled&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Disabled&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

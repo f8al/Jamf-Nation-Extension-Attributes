@@ -1,21 +1,30 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>Outlook Storage</displayName>
-<description>This attribute detects of the user's Outlook is set to show "On My Computer". If "On My Computer" is set to show then it's likely that the user is storing emails to their local hard drive. If "On My Computer" is set to hide then the user is not able to store emails to their local hard drive.&#13;
-&#13;
-This attribute can have three possible values: 1) none - Outlook is not configured 2) local - Outlook possibly storing emails to local hard drive 3) cloud - Outlook not storing emails to local hard drive.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-# by Meza Hsu 2017.11.21&#13;
-# Find if user's Outlook is set to use local storage&#13;
-LoggedInUser=$(/usr/bin/stat -f %Su "/dev/console")&#13;
-status=$(/usr/bin/defaults read /Users/"$LoggedInUser"/Library/Containers/com.microsoft.Outlook/Data/Library/Preferences/com.microsoft.Outlook HideFoldersOnMyComputerRootInFolderList)&#13;
-if [ "$status" = 1 ]; then&#13;
-    OutlookStorage="cloud"&#13;
-elif [ "$status" = 0 ]; then&#13;
-    OutlookStorage="local"&#13;
-else&#13;
-    OutlookStorage="none"&#13;
-fi&#13;
-echo "&lt;result&gt;$OutlookStorage&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Outlook Storage</displayName>
+	<description>Reports whether Outlook for Mac shows "On My Computer" folders, which lets users store mail locally. Values: "cloud" (hidden), "local" (visible), "none" (not configured).</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Outlook Storage Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Outlook for Mac is sandboxed; its prefs live in
+# Containers/com.microsoft.Outlook/Data/Library/Preferences. Some legacy
+# (non-sandboxed) installs still write to ~/Library/Preferences directly.
+
+user=$(/usr/bin/stat -f %Su /dev/console 2&gt;/dev/null)
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+
+containerPlist="$home/Library/Containers/com.microsoft.Outlook/Data/Library/Preferences/com.microsoft.Outlook"
+legacyPlist="$home/Library/Preferences/com.microsoft.Outlook"
+
+status=$(/usr/bin/defaults read "$containerPlist" HideFoldersOnMyComputerRootInFolderList 2&gt;/dev/null)
+[[ -z "$status" ]] &amp;&amp; status=$(/usr/bin/defaults read "$legacyPlist" HideFoldersOnMyComputerRootInFolderList 2&gt;/dev/null)
+
+case "$status" in
+	1) echo "&lt;result&gt;cloud&lt;/result&gt;" ;;
+	0) echo "&lt;result&gt;local&lt;/result&gt;" ;;
+	*) echo "&lt;result&gt;none&lt;/result&gt;" ;;
+esac
+</scriptContentsMac>
 </extensionAttribute>

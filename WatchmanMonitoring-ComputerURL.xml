@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Watchman Monitoring Computer URL</displayName>
-<description>Displays the URL to a monitored computer's record in Watchman Monitoring.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-if [ -f /Library/MonitoringClient/Utilities/ExportStatus ]; then&#13;
-   echo "&lt;result&gt;`defaults read /Library/MonitoringClient/ClientData/UnifiedStatus.plist ClientURL`&lt;/result&gt;"&#13;
-else&#13;
-  echo "&lt;result&gt;Watchman Monitoring not installed&lt;/result&gt;"&#13;
-fi</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Watchman Monitoring Computer URL</displayName>
+	<description>Returns the URL of this Mac's record in Watchman Monitoring, or "Watchman Monitoring not installed".</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Watchman Monitoring Computer URL Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+if [[ -f /Library/MonitoringClient/Utilities/ExportStatus ]]; then
+	url=$(/usr/bin/defaults read /Library/MonitoringClient/ClientData/UnifiedStatus.plist ClientURL 2&gt;/dev/null)
+	echo "&lt;result&gt;${url:-Unknown}&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Watchman Monitoring not installed&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

@@ -1,1 +1,20 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Battery Installed</displayName>	<displayInCategory>System Information</displayInCategory>	<dataType>string</dataType>	<description>This attribute returns whether or not a battery is currently installed in a system that supports batteries.</description>	<scriptContentsMac>#!/bin/shecho "&lt;result&gt;$(ioreg -r -c "AppleSmartBattery" | grep "BatteryInstalled" | awk '{print $3}' | sed s/\"//g)&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Battery Installed</displayName>
+	<displayInCategory>Hardware</displayInCategory>
+	<dataType>string</dataType>
+	<description>Whether a battery is currently installed (Yes/No), or N/A on desktops.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Battery Installed Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Reads the BatteryInstalled property from the AppleSmartBattery IOKit class.
+# Returns "No" on Macs without a battery (desktops).
+
+value=$(/usr/sbin/ioreg -r -c AppleSmartBattery 2&gt;/dev/null \
+    | /usr/bin/awk -F'= ' '/"BatteryInstalled" =/ { gsub(/^[ "]+|[ "]+$/, "", $2); print $2; exit }')
+
+echo "&lt;result&gt;${value:-No}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

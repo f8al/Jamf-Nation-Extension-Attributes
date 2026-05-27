@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>OpenSSL Version</displayName>
-<description>Checks the OpenSSL version.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-	echo "&lt;result&gt;`/usr/bin/openssl version | awk '{print $2}'`&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>OpenSSL Version</displayName>
+	<description>Reports the /usr/bin/openssl version number.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# OpenSSL Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# /usr/bin/openssl is LibreSSL on every modern macOS (Apple replaced
+# OpenSSL years ago). Reports the LibreSSL version it identifies as,
+# which differs from upstream OpenSSL release numbering.
+
+if /usr/bin/openssl version &amp;&gt;/dev/null; then
+	info=$(/usr/bin/openssl version 2&gt;/dev/null)
+	version=$(echo "$info" | /usr/bin/awk '{print $2}')
+	echo "&lt;result&gt;${version}&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Unknown&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

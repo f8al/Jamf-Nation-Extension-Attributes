@@ -1,1 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Last User</displayName>	<displayInCategory>User Information</displayInCategory>	<description>This attribute displays the last user to log in.  This attribute applies to both Mac and Windows.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shlastUser=`/usr/bin/last -1 -t console | awk '{print $1}'`if [ $lastUser == "wtmp" ]; thenecho "&lt;result&gt;No logins&lt;/result&gt;"elseecho "&lt;result&gt;$lastUser&lt;/result&gt;"fi	</scriptContentsMac>	<scriptTypeWindows>VBScript</scriptTypeWindows>	<scriptContentsWindows>On Error Resume NextDim objComputersDim strComputersSet objComputers= GetObject("winmgmts:").Instancesof("Win32_ComputerSystem")For each Computer in objComputersstrComputers = Computer.UserNameNextWScript.Echo "&lt;result&gt;" &amp; strComputers &amp; "&lt;/result&gt;"</scriptContentsWindows></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Last User</displayName>
+	<displayInCategory>User Information</displayInCategory>
+	<description>Returns the username of the most recent console login.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Last User Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Prefer the loginwindow-tracked value (survives reboots without console
+# logins); fall back to `last` if that pref is missing.
+
+user=$(/usr/bin/defaults read /Library/Preferences/com.apple.loginwindow lastUserName 2&gt;/dev/null)
+
+if [[ -z "$user" ]]; then
+    user=$(/usr/bin/last -1 -t console 2&gt;/dev/null | /usr/bin/awk '$1 != "wtmp" { print $1; exit }')
+fi
+
+echo "&lt;result&gt;${user:-No logins}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

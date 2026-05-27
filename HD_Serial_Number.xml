@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>HD Serial Number</displayName>
-<description>This attribute returns serial number of the Hard Drive</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-&#13;
-echo "&lt;result&gt;$(ioreg -rd1 -w0 -c AppleAHCIDiskDriver | grep Serial | sed 's/.*= //' | cut -d '"' -f 2)&lt;/result&gt;"&#13;
+	<displayName>HD Serial Number</displayName>
+	<description>Returns the serial number of the boot disk's underlying storage device. Handles SATA (AHCI), NVMe, and the Apple Silicon embedded NAND.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Hard Drive Serial Number Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Older script only queried AppleAHCIDiskDriver (SATA), which misses NVMe
+# and the Apple Silicon embedded NAND. system_profiler exposes all storage
+# devices uniformly and includes the disk serial.
+
+serial=$(/usr/sbin/system_profiler SPNVMeDataType SPSerialATADataType 2&gt;/dev/null \
+    | /usr/bin/awk -F': ' '/Serial Number:/ { gsub(/^[ \t]+/, "", $2); print $2; exit }')
+
+echo "&lt;result&gt;${serial:-Unknown}&lt;/result&gt;"
 </scriptContentsMac>
-<scriptContentsWindows/>
 </extensionAttribute>

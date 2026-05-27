@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>GPU</displayName>
-<description>This attribute displays the GPU of the computer. It's particularly useful, if you want to scope computers with nVidia video cards, so you can make new drivers or CUDA available for your users.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-# Meza Hsu&#13;
-# 2016.02.09&#13;
-# Find out which GPU the computer has.&#13;
-VideoCard=$(system_profiler SPDisplaysDataType | grep 'Chipset Model:' | cut -f2- -d':')&#13;
-echo "&lt;result&gt;$VideoCard&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>GPU</displayName>
+	<description>Reports the GPU chipset model(s). Useful for scoping smart groups by graphics hardware.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# GPU Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Joins multiple chipsets with ", " (e.g., Intel + AMD on dual-GPU MacBook
+# Pros). On Apple Silicon this returns the SoC's integrated GPU name.
+
+gpu=$(/usr/sbin/system_profiler SPDisplaysDataType 2&gt;/dev/null \
+    | /usr/bin/awk -F': ' '/Chipset Model:/ { sub(/^ +/, "", $2); print $2 }' \
+    | /usr/bin/paste -sd ',' - \
+    | /usr/bin/sed 's/,/, /g')
+
+echo "&lt;result&gt;${gpu:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

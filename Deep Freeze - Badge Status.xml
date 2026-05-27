@@ -1,1 +1,34 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Deep Freeze - Badge Status</displayName>	<displayInCategory>System State Management</displayInCategory>	<description>This attribute returns the Deep Freeze badge setting status of a drive.  "Enabled" means that the Deep Freeze badge will be displayed on Frozen Drives.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shdfUsername="EditFromTemplate_DeepFreeze_Service_Account_Username"dfPassword="EditFromTemplate_DeepFreeze_Service_Account_Password"if [ -f "/Library/Application Support/Faronics/Deep Freeze/CLI" ]; thenresult=`/Library/Application\ Support/Faronics/Deep\ Freeze/CLI "$dfUsername" "$dfPassword" status | grep "DON'T BADGE FROZEN DRIVES" | grep "FALSE"`if [ "$result" == "" ]; then	result="Disabled"else	result="Enabled"fi	fiecho "&lt;result&gt;$result&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Deep Freeze - Badge Status</displayName>
+	<displayInCategory>System State Management</displayInCategory>
+	<description>Whether the Deep Freeze badge appears on Frozen drives.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Deep Freeze - Badge Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Requires a Deep Freeze service account; populate the placeholders before
+# deployment. Embedding credentials in EAs is not best practice — prefer
+# a Jamf script parameter or a credentials-on-disk lookup if available.
+
+dfUsername="EditFromTemplate_DeepFreeze_Service_Account_Username"
+dfPassword="EditFromTemplate_DeepFreeze_Service_Account_Password"
+cli="/Library/Application Support/Faronics/Deep Freeze/CLI"
+
+if [[ ! -x "$cli" ]]; then
+    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+    exit 0
+fi
+
+match=$("$cli" "$dfUsername" "$dfPassword" status 2&gt;/dev/null \
+    | /usr/bin/grep "DON'T BADGE FROZEN DRIVES" | /usr/bin/grep "FALSE")
+
+if [[ -z "$match" ]]; then
+    echo "&lt;result&gt;Disabled&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Enabled&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

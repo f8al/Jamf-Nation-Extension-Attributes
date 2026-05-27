@@ -1,59 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>SmartCard - Screensaver Lock</displayName>
-<displayInCategory>Operating System</displayInCategory>
-<dataType>string</dataType>
-<description>Reviews if the screensaver will activate immediately upon SmartCard removal.
-</description>
-<scriptContentsMac>#!/bin/sh
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#
-# Copyright (c) 2018 Jamf.  All rights reserved.
-#
-#       Redistribution and use in source and binary forms, with or without
-#       modification, are permitted provided that the following conditions are met:
-#               * Redistributions of source code must retain the above copyright
-#                 notice, this list of conditions and the following disclaimer.
-#               * Redistributions in binary form must reproduce the above copyright
-#                 notice, this list of conditions and the following disclaimer in the
-#                 documentation and/or other materials provided with the distribution.
-#               * Neither the name of the Jamf nor the names of its contributors may be
-#                 used to endorse or promote products derived from this software without
-#                 specific prior written permission.
-#
-#       THIS SOFTWARE IS PROVIDED BY JAMF SOFTWARE, LLC "AS IS" AND ANY
-#       EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-#       WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-#       DISCLAIMED. IN NO EVENT SHALL JAMF SOFTWARE, LLC BE LIABLE FOR ANY
-#       DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-#       (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-#       LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-#       ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#       (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-#       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-################
-# Most authorship of the following script by Jamf Sr. Systems Engineer: Matt Woodruff
-# Jamf Nation username: mwoodruff
-################
-# Regex for OS detection +10.13
-OSREGEX="^1[3-9]$"
-# Gets the OS version
-OS=$(/usr/bin/sw_vers -productVersion)
-OSVERS=$(/usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '{print $2}')
-if [[ $OSVERS =~ $OSREGEX ]]; then
-	curUser=$(ls -l /dev/console | cut -d " " -f 4)
-	SSset=$(defaults read /Users/$curUser/Library/Preferences/com.apple.screensaver tokenRemovalAction)
-else
-	SSset="none"
+	<displayName>SmartCard - Screensaver Lock</displayName>
+	<displayInCategory>Operating System</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports whether tokenRemovalAction is set to "screensaver lock on card removal" for the current console user.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# SmartCard Screensaver Lock Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Original regex ^1[3-9]$ would fail to match macOS 26 (Tahoe); the
+# preference still works on all modern macOS so we just read it.
+
+user=$(/usr/sbin/scutil &lt;&lt;&lt; "show State:/Users/ConsoleUser" 2&gt;/dev/null \
+	| /usr/bin/awk '/Name :/ &amp;&amp; ! /loginwindow/ { print $3; exit }')
+
+if [[ -z "$user" || "$user" == "root" ]]; then
+	echo "&lt;result&gt;No Console User&lt;/result&gt;"
+	exit 0
 fi
-if [ "$SSset" == "none" ]; then
-        echo "&lt;result&gt;Not Suppprted in OS $OS&lt;/result&gt;"
-elif [ "$SSset" == "1" ]; then
-        echo "&lt;result&gt;Enabled&lt;/result&gt;"
-else 
-	echo "&lt;result&gt;Disabled&lt;/result&gt;"
-fi
+
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+value=$(/usr/bin/defaults read "$home/Library/Preferences/com.apple.screensaver" tokenRemovalAction 2&gt;/dev/null)
+
+case "$value" in
+	1) echo "&lt;result&gt;Enabled&lt;/result&gt;" ;;
+	0) echo "&lt;result&gt;Disabled&lt;/result&gt;" ;;
+	*) echo "&lt;result&gt;Not Set&lt;/result&gt;" ;;
+esac
 </scriptContentsMac>
 </extensionAttribute>

@@ -1,17 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Tableau Fulfillment ID</displayName>
-<description>Displays Fulfillment ID for Tableau Desktop or "Not_Installed" if Tableau is not installed.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-&#13;
-if [ -e /Applications/Tableau.app/Contents/Frameworks/FlexNet/custactutil ]&#13;
-	then&#13;
-		fidResult=`/Applications/Tableau.app/Contents/Frameworks/FlexNet/custactutil -view | grep "Fulfillment ID:" | tail -n 1 | awk -F ": " '{print $2}'`&#13;
-	else&#13;
-		fidResult="Not_Installed"&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;$fidResult&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Tableau Fulfillment ID</displayName>
+	<description>Returns the FlexNet Fulfillment ID for installed Tableau Desktop, or "Not_Installed". Tableau still bundles the FlexNet custactutil helper on macOS.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Tableau Fulfillment ID Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Tableau versions the bundle directory (Tableau.app or Tableau Desktop.app);
+# we glob both.
+
+custactutil=""
+for app in "/Applications/Tableau.app" "/Applications/Tableau Desktop.app"; do
+	[[ -x "$app/Contents/Frameworks/FlexNet/custactutil" ]] &amp;&amp; custactutil="$app/Contents/Frameworks/FlexNet/custactutil" &amp;&amp; break
+done
+
+if [[ -z "$custactutil" ]]; then
+	echo "&lt;result&gt;Not_Installed&lt;/result&gt;"
+	exit 0
+fi
+
+fid=$("$custactutil" -view 2&gt;/dev/null | /usr/bin/awk -F': ' '/Fulfillment ID:/ { print $2 }' | /usr/bin/tail -n1)
+
+echo "&lt;result&gt;${fid:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

@@ -4,10 +4,26 @@
   <displayName>Boot Volume Free Space</displayName>
   <displayInCategory/>
   <dataType>integer</dataType>
-  <description>Returns the free space on the current boot volume in GB, rounded down to the nearest integer.</description>
-  <scriptContentsMac>#!/bin/bash
+  <description>Free space on the boot volume in GB (1 GB = 1,000,000,000 bytes), rounded down. Reflects APFS container free space so the value matches Finder's "Available".</description>
+  <scriptContentsMac>#!/bin/zsh
 
-free=`diskutil info /|grep "Free Space"|awk '{print $4}'`
+# Updated by SecurityShrimp 2026
+# Boot Volume Free Space Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Reads APFSContainerFree from diskutil's plist output so the result matches
+# what Finder shows as "Available" (free + purgeable). Falls back to the
+# per-volume FreeSpace on the rare non-APFS boot disk.
 
-echo "&lt;result&gt;"${free%.*}"&lt;/result&gt;"</scriptContentsMac>
+infoPlist=$(/usr/sbin/diskutil info -plist / 2&gt;/dev/null)
+
+freeBytes=$(echo "$infoPlist" | /usr/bin/plutil -extract APFSContainerFree raw - 2&gt;/dev/null)
+[[ -z "$freeBytes" || "$freeBytes" == "&lt;null&gt;" ]] \
+    &amp;&amp; freeBytes=$(echo "$infoPlist" | /usr/bin/plutil -extract FreeSpace raw - 2&gt;/dev/null)
+
+if [[ -z "$freeBytes" || ! "$freeBytes" =~ ^[0-9]+$ ]]; then
+    echo "&lt;result&gt;Unknown&lt;/result&gt;"
+else
+    echo "&lt;result&gt;$(( freeBytes / 1000000000 ))&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

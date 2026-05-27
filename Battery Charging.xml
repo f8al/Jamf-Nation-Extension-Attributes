@@ -1,1 +1,20 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Battery Charging</displayName>	<displayInCategory>System Information</displayInCategory>	<dataType>string</dataType>	<description>This attribute returns whether or not the battery is charging, if installed.</description>	<scriptContentsMac>#!/bin/shecho "&lt;result&gt;$(ioreg -r -c "AppleSmartBattery" | grep -w "IsCharging" | awk '{print $3}' | sed s/\"//g)&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Battery Charging</displayName>
+	<displayInCategory>Hardware</displayInCategory>
+	<dataType>string</dataType>
+	<description>Whether the battery is currently charging (Yes/No), or N/A on desktops.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Battery Charging Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Reads the IsCharging property from the AppleSmartBattery IOKit class.
+# Returns "N/A" on Macs without a battery (desktops).
+
+value=$(/usr/sbin/ioreg -r -c AppleSmartBattery 2&gt;/dev/null \
+    | /usr/bin/awk -F'= ' '/"IsCharging" =/ { gsub(/^[ "]+|[ "]+$/, "", $2); print $2; exit }')
+
+echo "&lt;result&gt;${value:-N/A}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

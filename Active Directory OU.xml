@@ -1,27 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Active Directory OU</displayName>
-<description>If the computer is bound to Active Directory it will show the path to where it is located in AD. Helpful for Smart Groups based on objects in a particular OU. </description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-ad_computer_name=`dsconfigad -show | grep "Computer Account" | awk '{print $4}'`&#13;
-ad_computer_ou=`dscl /Search read /Computers/$ad_computer_name | \&#13;
-grep -A 1 dsAttrTypeNative:distinguishedName | \&#13;
-cut -d, -f2- | sed -n 's/OU\=//gp' | \&#13;
-sed -n 's/\(.*\),DC\=/\1./gp' | \&#13;
-sed -n 's/DC\=//gp' | \&#13;
-awk -F, '{&#13;
-N = NF&#13;
-while ( N &gt; 1 )&#13;
-{&#13;
-printf "%s/",$N&#13;
-N--&#13;
-}&#13;
-&#13;
-printf "%s",$1&#13;
-}'`&#13;
-&#13;
-echo "&lt;result&gt;$ad_computer_ou&lt;/result&gt;"&#13;
+	<displayName>Active Directory OU</displayName>
+	<description>If the computer is bound to Active Directory, returns the OU path as a slash-separated DNS-style string. Empty if not bound.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Active Directory OU Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# dsconfigad and dscl /Search continue to work on Apple Silicon and Intel.
+# If the Mac is unbound, dsconfigad returns "Not bound..." and we exit empty
+# so the EA doesn't pollute Jamf inventory with junk.
+
+if ! /usr/sbin/dsconfigad -show 2&gt;/dev/null | /usr/bin/grep -q "Computer Account"; then
+    echo "&lt;result&gt;&lt;/result&gt;"
+    exit 0
+fi
+
+adComputer=$(/usr/sbin/dsconfigad -show | /usr/bin/awk -F'= ' '/Computer Account/ { gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2; exit }')
+
+ou=$(/usr/bin/dscl /Search read "/Computers/${adComputer}" dsAttrTypeNative:distinguishedName 2&gt;/dev/null \
+    | /usr/bin/awk '/distinguishedName/ {found=1; next} found {print; exit}' \
+    | /usr/bin/sed -E 's/^[[:space:]]+//; s/^CN=[^,]+,//; s/OU=//g; s/,DC=/./; s/DC=//g' \
+    | /usr/bin/awk -F',' '{
+        out=""
+        for (i=NF; i&gt;1; i--) out = out $i "/"
+        print out $1
+    }')
+
+echo "&lt;result&gt;${ou}&lt;/result&gt;"
 </scriptContentsMac>
-<scriptContentsWindows/>
 </extensionAttribute>

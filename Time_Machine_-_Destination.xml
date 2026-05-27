@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Time Machine - Destination using tmutil</displayName>
-<description>NOTE - This EA has only been tested with OS X 10.9 and 10.10 !!&#13;
-&#13;
-Uses 'tmutil'  binary display Time Machine destination volume name and volume type.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-enabled=`/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup`&#13;
-	&#13;
-if [ "$enabled" == "1" ]&#13;
-	then &#13;
-		volumeName=`/usr/bin/tmutil destinationinfo | grep "Name" | awk -F ": " '{print $2}'`&#13;
-		volumeType=`/usr/bin/tmutil destinationinfo | grep "Kind" | awk -F ": " '{print $2}'`&#13;
-		result="$volumeName ($volumeType)"&#13;
-	else&#13;
-		result="NA"&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;$result&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Time Machine - Destination using tmutil</displayName>
+	<description>Returns the Time Machine destination volume name and kind (e.g. "MyBackup (Local)" or "TimeCapsule (Network)").</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Time Machine Destination Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+if ! /usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup 2&gt;/dev/null | /usr/bin/grep -q "^1$"; then
+	echo "&lt;result&gt;NA&lt;/result&gt;"
+	exit 0
+fi
+
+info=$(/usr/bin/tmutil destinationinfo 2&gt;/dev/null)
+name=$(echo "$info" | /usr/bin/awk -F': ' '/Name[[:space:]]+:/ { print $2; exit }')
+kind=$(echo "$info" | /usr/bin/awk -F': ' '/Kind[[:space:]]+:/ { print $2; exit }')
+
+if [[ -z "$name" ]]; then
+	echo "&lt;result&gt;NA&lt;/result&gt;"
+else
+	echo "&lt;result&gt;$name ($kind)&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

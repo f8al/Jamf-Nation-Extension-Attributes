@@ -1,19 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>Xprotect Status</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>EA to pull the modification date from Xprotect so that admins can see what version of Xprotect is in use on client machines. &#13;
-&#13;
-n.b. As Apple silently pushes Xprotect updates to clients if the service is enabled on the machine, the data this EA collects is a snapshot of Xprotect status at time of inventory and might not be the current status on a client machine.</description>
-  <scriptContentsMac>#!/bin/sh
+	<displayName>Xprotect Status</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Returns the LastModification timestamp of XProtect's metadata. On macOS 12+ the malware definitions are delivered via XProtectRemediator/XProtect.app updates so the meta file's mtime is a proxy for last definition update.</description>
+	<scriptContentsMac>#!/bin/zsh
 
-#Pulls Sophos version string from Sophos Anti-Virus.app
+# Updated by SecurityShrimp 2026
+# XProtect Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Apple moved XProtect contents into XProtect.app on macOS 13+. The
+# CoreTypes.bundle plist still exists and continues to track update times
+# on every modern macOS, so we read it directly.
 
-XPROTECT=`defaults read /System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/XProtect.meta LastModification`
+stamp=$(/usr/bin/defaults read /System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/XProtect.meta LastModification 2&gt;/dev/null)
 
-echo "&lt;result&gt;$XPROTECT&lt;/result&gt;"
+# On 13+, also probe the newer XProtect.app version
+if [[ -z "$stamp" &amp;&amp; -d /Library/Apple/System/Library/CoreServices/XProtect.app ]]; then
+	stamp=$(/usr/bin/defaults read /Library/Apple/System/Library/CoreServices/XProtect.app/Contents/Resources/XProtect.meta LastModification 2&gt;/dev/null)
+fi
 
-exit 0</scriptContentsMac>
+echo "&lt;result&gt;${stamp:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

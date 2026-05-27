@@ -1,27 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Location Services</displayName>
-<description/>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-uuid=$(system_profiler SPHardwareDataType | grep "Hardware UUID" | awk '{print $3}')&#13;
-domain="/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd.${uuid}"&#13;
-plist="${domain}.plist"&#13;
-&#13;
-if [[ -f "${plist}" ]]&#13;
-then&#13;
-  status=$(defaults read "${domain}" LocationServicesEnabled)&#13;
-  if [[ "${status}" == "1" ]]&#13;
-  then&#13;
-    result="Enabled"&#13;
-  else&#13;
-    result="Disabled"&#13;
-  fi&#13;
-else&#13;
-  result="Unavailable"&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;${result}&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Location Services</displayName>
+	<description>Reports whether the system-wide Location Services daemon is enabled ("Enabled", "Disabled", or "Unavailable" when locationd's plist is absent).</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Location Services Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# The plist still lives under /var/db/locationd/. The path is SIP-protected
+# but readable by root, which is the context Jamf EAs run in.
+
+uuid=$(/usr/sbin/ioreg -d2 -c IOPlatformExpertDevice 2&gt;/dev/null \
+    | /usr/bin/awk -F'"' '/IOPlatformUUID/ { print $4; exit }')
+
+plist="/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd.${uuid}.plist"
+
+if [[ ! -f "$plist" ]]; then
+    echo "&lt;result&gt;Unavailable&lt;/result&gt;"
+    exit 0
+fi
+
+status=$(/usr/bin/defaults read "${plist%.plist}" LocationServicesEnabled 2&gt;/dev/null)
+
+if [[ "$status" == "1" ]]; then
+    echo "&lt;result&gt;Enabled&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Disabled&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

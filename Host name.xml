@@ -1,1 +1,20 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Host name</displayName>	<displayInCategory>Networking</displayInCategory>	<description>This attribute returns the host name of the computer.  This attribute applies to both Mac and Windows.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shecho "&lt;result&gt;`hostname 2>&amp;1`&lt;/result&gt;"		</scriptContentsMac>   <scriptTypeWindows>VBScript</scriptTypeWindows>	<scriptContentsWindows>On Error Resume NextDim WshNetworkSet WshNetwork = WScript.CreateObject("WScript.Network")WScript.Echo "&lt;result&gt;" &amp; WshNetwork.ComputerName &amp; "&lt;/result&gt;"</scriptContentsWindows></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Host name</displayName>
+	<displayInCategory>Networking</displayInCategory>
+	<description>Returns the local host name (the Bonjour/.local name) of the computer.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Host Name Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Prefers scutil LocalHostName (the Bonjour name shown in Sharing settings)
+# and falls back to /bin/hostname if that is unset.
+
+hostName=$(/usr/sbin/scutil --get LocalHostName 2&gt;/dev/null)
+[[ -z "$hostName" ]] &amp;&amp; hostName=$(/bin/hostname -s 2&gt;/dev/null)
+
+echo "&lt;result&gt;${hostName:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

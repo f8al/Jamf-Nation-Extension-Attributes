@@ -1,1 +1,29 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Battery Charge Percentage</displayName>	<displayInCategory>System Information</displayInCategory>	<dataType>integer</dataType>	<description>This attribute returns remaining charge percentage of the battery, if installed.  This attribute applies to both Mac and Windows.</description>	<scriptContentsMac>#!/bin/shmaxCapacity=`ioreg -r -c "AppleSmartBattery" | grep -w "MaxCapacity" | awk '{print $3}' | sed s/\"//g`currentCapacity=`ioreg -r -c "AppleSmartBattery" | grep -w "CurrentCapacity" | awk '{print $3}' | sed s/\"//g`	result=$( echo "scale=4; ($currentCapacity / $maxCapacity) * 100" | bc | sed 's/\(.*\)../\1/' )echo "&lt;result&gt;$result&lt;/result&gt;"	</scriptContentsMac>	<scriptTypeWindows>VBScript</scriptTypeWindows>	<scriptContentsWindows>On Error Resume Next	Dim objBatteriesDim strBatteries	Set objBatteries = GetObject("winmgmts:").InstancesOf("Win32_Battery")i=0For each Battery in objBatteriesif i &lt;&gt; 0 thenstrBatteries = "&lt;br&gt;" &amp; strBatteriesEnd IfstrBatteries = Battery.EstimatedChargeRemaining &amp; strBatteries    i=i+1NextWScript.Echo "&lt;result&gt;" &amp; strBatteries &amp; "&lt;/result&gt;"</scriptContentsWindows></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Battery Charge Percentage</displayName>
+	<displayInCategory>Hardware</displayInCategory>
+	<dataType>Integer</dataType>
+	<description>Remaining battery charge as an integer percentage, or N/A for desktop Macs.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Battery Charge Percentage Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Returns the remaining battery charge as an integer percentage, or N/A on
+# Macs without a battery (desktops).
+
+read -r maxCapacity currentCapacity &lt;&lt;&lt;"$(/usr/sbin/ioreg -r -c AppleSmartBattery 2&gt;/dev/null \
+    | /usr/bin/awk -F'= ' '
+        /"MaxCapacity" =/     { m=$2 }
+        /"CurrentCapacity" =/ { c=$2 }
+        END                   { print m, c }
+    ')"
+
+if [[ -z "$maxCapacity" || -z "$currentCapacity" || "$maxCapacity" -eq 0 ]]; then
+    echo "&lt;result&gt;N/A&lt;/result&gt;"
+else
+    pct=$(( currentCapacity * 100 / maxCapacity ))
+    echo "&lt;result&gt;$pct&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

@@ -1,23 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Casper Site</displayName>
-<description>This script reports the system's site association as an extended attribute so it can be used as search criteria.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-&#13;
-apiURL="https://yourjss:8443/JSSResource/computers/udid/"&#13;
-apiUser="APIUser"&#13;
-apiPass="APIPassword"&#13;
-MacAdd=$( /usr/sbin/networksetup -getmacaddress en0 | /usr/bin/awk '{ print $3 }' | /usr/bin/sed 's/:/./g' )&#13;
-&#13;
-udid=$(/usr/sbin/system_profiler SPHardwareDataType | /usr/bin/awk '/Hardware UUID:/ { print $3 }')&#13;
-&#13;
-siteName=$(/usr/bin/curl -s -u ${apiUser}:${apiPass} "${apiURL}${udid}" | /usr/bin/xpath '/computer/general/site/name[1]/text()' 2&gt;/dev/null)&#13;
-&#13;
-if [[ $siteName ]]; then&#13;
-   echo "&lt;result&gt;${siteName}&lt;/result&gt;"&#13;
-else&#13;
-   echo "&lt;result&gt;Not Available&lt;/result&gt;"&#13;
-fi</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Jamf Pro Site</displayName>
+	<description>Queries the Jamf Pro API for this computer's Site assignment. Configure the apiURL/apiUser/apiPass placeholders before deployment. Note: Casper was renamed Jamf Pro in 2017.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Jamf Pro Site Extension Attribute (formerly "Casper Site")
+# Targets macOS 12 through 26 (Tahoe)
+# Authenticates against the Jamf Pro Classic API with token-based auth
+# (Basic auth on /classic endpoints was deprecated in Jamf Pro 10.35).
+# Replace the placeholders with credentials for an API account that has
+# Read on Computers. Embedding creds in EAs is not best practice; prefer
+# a Jamf Pro built-in Site reporting field when available.
+
+apiURL="https://yourjss.example.com:8443"
+apiUser="APIUser"
+apiPass="APIPassword"
+
+udid=$(/usr/sbin/ioreg -d2 -c IOPlatformExpertDevice 2&gt;/dev/null \
+    | /usr/bin/awk -F'"' '/IOPlatformUUID/ { print $4; exit }')
+
+token=$(/usr/bin/curl -s -u "${apiUser}:${apiPass}" \
+    -X POST "${apiURL}/api/v1/auth/token" 2&gt;/dev/null \
+    | /usr/bin/awk -F'"' '/token/ { print $4; exit }')
+
+if [[ -z "$token" ]]; then
+    echo "&lt;result&gt;Auth Failed&lt;/result&gt;"
+    exit 0
+fi
+
+xml=$(/usr/bin/curl -s -H "Authorization: Bearer ${token}" \
+    "${apiURL}/JSSResource/computers/udid/${udid}" 2&gt;/dev/null)
+
+siteName=$(echo "$xml" | /usr/bin/xmllint --xpath 'string(//computer/general/site/name)' - 2&gt;/dev/null)
+
+# Revoke the token so we don't leave a session hanging
+/usr/bin/curl -s -H "Authorization: Bearer ${token}" \
+    -X POST "${apiURL}/api/v1/auth/invalidate-token" &gt;/dev/null 2&gt;&amp;1
+
+echo "&lt;result&gt;${siteName:-Not Available}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

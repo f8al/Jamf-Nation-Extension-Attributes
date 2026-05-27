@@ -1,1 +1,30 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>iSight Camera Status</displayName>	<displayInCategory>Security Reporting</displayInCategory>	<dataType>string</dataType>	<description>This attribute displays the status of the iSight Camera.  The value to be verified will need to be specified when creating this extension attribute.  Example: "disabled" verifies that the iSight Camera is disabled.</description>	<scriptContentsMac>#!/bin/shdesiredValue="EditFromTemplate_Desired_Value_-_Example:_disabled"if [ -d "/System/Library/Extensions/Apple_iSight.kext" ] || [ -d "/System/Library/QuickTime/QuickTimeUSBVDCDigitizer.component" ] || [ -d "/System/Library/PrivateFrameworks/CoreMediaIOServicesPrivate.framework/Versions/A/Resources/VDC.plugin" ]; thenstatus="enabled"elsestatus="disabled"fi		if [ "$desiredValue" ==  "$status" ]; thenecho "&lt;result&gt;Pass (iSight Status is: $status)&lt;/result&gt;"elseecho "&lt;result&gt;Fail (iSight Status is: $status)&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>iSight Camera Status</displayName>
+	<displayInCategory>Security Reporting</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports whether the built-in camera (FaceTime HD / Studio Camera) is present and active. Edit desiredValue (enabled/disabled) before deployment.</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# iSight Camera Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Old script probed kext paths under /System/Library/Extensions which
+# have been replaced by sealed-system bundles and DriverKit on modern
+# macOS. system_profiler is the supported way to detect the camera.
+
+desiredValue="EditFromTemplate_Desired_Value"
+
+if /usr/sbin/system_profiler SPCameraDataType 2&gt;/dev/null | /usr/bin/grep -qi "Model ID"; then
+	status="enabled"
+else
+	status="disabled"
+fi
+
+if [[ "$status" == "$desiredValue" ]]; then
+	echo "&lt;result&gt;Pass (iSight Status is: $status)&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Fail (iSight Status is: $status)&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

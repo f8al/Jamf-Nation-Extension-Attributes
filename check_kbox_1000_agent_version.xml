@@ -1,20 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>Kace KBox 1000 6.x and later</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>Updated Casper Extension Attribute for Kace KBox 1000. Previous versions of the KBox 1000 EA do not pull information correctly for both 5.x and 6.x; this updated version handles both and returns the correct version of the Kace agent.</description>
-  <scriptContentsMac>#!/bin/sh
+	<displayName>Kace KBox 1000 6.x and later</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Returns the installed Quest KACE (formerly Dell KACE) KBox 1000 agent version, or "Not installed".</description>
+	<scriptContentsMac>#!/bin/zsh
 
-# Check to see if the KBox agent is installed.
-# If the agent is installed, report the agent
-# version.
+# Updated by SecurityShrimp 2026
+# Quest KACE Agent Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
 
-if [ -f "/Library/Application Support/Dell/KACE/data/version" ]; then
-   result=`cat "/Library/Application Support/Dell/KACE/data/version" | awk 'NR == 1'`
-   echo "&lt;result&gt;$result&lt;/result&gt;"
+versionFile="/Library/Application Support/Dell/KACE/data/version"
+[[ ! -f "$versionFile" ]] &amp;&amp; versionFile="/Library/Application Support/Quest/KACE/data/version"
+
+if [[ -f "$versionFile" ]]; then
+	version=$(/usr/bin/head -n1 "$versionFile")
+	echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
 else
-   echo "&lt;result&gt;Not installed&lt;/result&gt;"
-fi</scriptContentsMac>
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

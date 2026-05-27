@@ -1,1 +1,42 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Deep Freeze - Frozen Status</displayName>	<displayInCategory>System State Management</displayInCategory>	<description>This attribute returns the Deep Freeze frozen status of a drive.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shtargetDrive="/"  #Use "/" for the root devicedfUsername="EditFromTemplate_DeepFreeze_Service_Account_Username"dfPassword="EditFromTemplate_DeepFreeze_Service_Account_Password"if [ -f "/Library/Application Support/Faronics/Deep Freeze/CLI" ]; thendiskIdentifier=`df | grep "^$targetDrive" | grep "$targetDrive$" | awk '{print $1}' | sed s:/dev/::g`targetPartition=`diskutil info -plist $diskIdentifier | grep -A 1 VolumeName | grep string | sed s:"<string>"::g | sed s:"</string>"::g | awk '{sub(/^[ \t]+/, ""); print}'`result=`/Library/Application\ Support/Faronics/Deep\ Freeze/CLI "$dfUsername" "$dfPassword" status | grep "$targetPartition" | grep "TRUE"`if [ "$result" == "" ]; then	result="False"else	result="True"fi	fiecho "&lt;result&gt;$result&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Deep Freeze - Frozen Status</displayName>
+	<displayInCategory>System State Management</displayInCategory>
+	<description>Returns whether the boot volume is currently Frozen under Deep Freeze.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Deep Freeze Frozen Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Looks up the boot volume name via diskutil and asks the Deep Freeze CLI
+# whether that partition is Frozen. Populate the service account creds.
+
+targetDrive="/"
+dfUsername="EditFromTemplate_DeepFreeze_Service_Account_Username"
+dfPassword="EditFromTemplate_DeepFreeze_Service_Account_Password"
+cli="/Library/Application Support/Faronics/Deep Freeze/CLI"
+
+if [[ ! -x "$cli" ]]; then
+    echo "&lt;result&gt;Not installed&lt;/result&gt;"
+    exit 0
+fi
+
+volName=$(/usr/sbin/diskutil info -plist "$targetDrive" 2&gt;/dev/null \
+    | /usr/bin/plutil -extract VolumeName raw - 2&gt;/dev/null)
+
+if [[ -z "$volName" ]]; then
+    echo "&lt;result&gt;Unknown&lt;/result&gt;"
+    exit 0
+fi
+
+match=$("$cli" "$dfUsername" "$dfPassword" status 2&gt;/dev/null \
+    | /usr/bin/grep "$volName" | /usr/bin/grep "TRUE")
+
+if [[ -z "$match" ]]; then
+    echo "&lt;result&gt;False&lt;/result&gt;"
+else
+    echo "&lt;result&gt;True&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

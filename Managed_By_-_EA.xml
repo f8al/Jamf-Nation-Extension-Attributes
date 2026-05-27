@@ -1,29 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Managed By - EA</displayName>
-<description/>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-################################################################################################################################&#13;
-## This Extension Attribute will return the "Managed by" account name that the JSS is using to manage the computer"           ##&#13;
-## You can then create Smart Groups or Advanced Search based on this Attribute.                                               ##&#13;
-##                                                                                                                            ##&#13;
-## You need to fill in your UserName, Password to access your JSS.  You also need to fill in the JSS address and port number. ##&#13;
-################################################################################################################################&#13;
-&#13;
-### Update these variables ###&#13;
-user="UserName"&#13;
-pass="Password"&#13;
-jssaddress="Server Address"&#13;
-serverPort="8443"&#13;
-computerName=$(hostname -f) &#13;
-&#13;
-&#13;
-&#13;
-## Do not modify below this line ###&#13;
-response=$(curl https://$jssaddress/JSSResource:$serverPort/computers/name/$computerName/subset/General --user "$user:$pass")&#13;
-ManagedBy=$(echo $response | /usr/bin/awk -F'&lt;management_username&gt;|&lt;/management_username&gt;' '{print $2}')&#13;
-&#13;
-echo "&lt;result&gt;$ManagedBy&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Managed By - EA</displayName>
+	<description>Returns the Jamf Pro management account name assigned to this computer. Requires Classic API credentials with Read on Computers. Populate the placeholders before deployment.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Jamf Pro Managed By Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Uses token-based auth instead of HTTP Basic (deprecated in Jamf Pro
+# 10.35+). Queries by UDID rather than hostname for reliability.
+
+apiUser="UserName"
+apiPass="Password"
+jssBase="https://jss.example.com:8443"
+
+udid=$(/usr/sbin/ioreg -d2 -c IOPlatformExpertDevice 2&gt;/dev/null \
+    | /usr/bin/awk -F'"' '/IOPlatformUUID/ { print $4; exit }')
+
+token=$(/usr/bin/curl -s -u "${apiUser}:${apiPass}" \
+    -X POST "${jssBase}/api/v1/auth/token" 2&gt;/dev/null \
+    | /usr/bin/awk -F'"' '/token/ { print $4; exit }')
+
+if [[ -z "$token" ]]; then
+    echo "&lt;result&gt;Auth Failed&lt;/result&gt;"
+    exit 0
+fi
+
+managedBy=$(/usr/bin/curl -s -H "Authorization: Bearer ${token}" \
+    "${jssBase}/JSSResource/computers/udid/${udid}/subset/General" 2&gt;/dev/null \
+    | /usr/bin/xmllint --xpath 'string(//computer/general/management_username)' - 2&gt;/dev/null)
+
+/usr/bin/curl -s -H "Authorization: Bearer ${token}" \
+    -X POST "${jssBase}/api/v1/auth/invalidate-token" &gt;/dev/null 2&gt;&amp;1
+
+echo "&lt;result&gt;${managedBy:-N/A}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

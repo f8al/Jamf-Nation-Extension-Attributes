@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>JavaVersion</displayName>
-<description>Detect version of Java</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-&#13;
-#&#13;
-# script by emily k @volusion 2014-06-10&#13;
-# to detect version of java installed on OS X&#13;
-# &#13;
-&#13;
-if [ -f "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Enabled.plist" ] ; then&#13;
-	VERSION=$( defaults read "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Enabled.plist" CFBundleVersion )&#13;
-else&#13;
-	VERSION="Not installed."&#13;
-fi&#13;
-&#13;
-echo "&lt;result&gt;$VERSION&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>JavaVersion</displayName>
+	<description>Returns the installed Java runtime version (queries the JDK via /usr/libexec/java_home). The legacy "JavaAppletPlugin" Internet Plug-In has been non-functional since browsers removed NPAPI support.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# JavaVersion Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# The Internet Plug-Ins JavaAppletPlugin path stopped being relevant when
+# browsers dropped NPAPI (Chrome 45, Firefox 52, Safari 12 ~2018). Detect
+# the system JDK via java_home, which Apple still ships in the base OS.
+
+if ! /usr/libexec/java_home -F &amp;&gt;/dev/null; then
+    echo "&lt;result&gt;Not installed.&lt;/result&gt;"
+    exit 0
+fi
+
+version=$(/usr/libexec/java_home -V 2&gt;&amp;1 | /usr/bin/awk '/^[[:space:]]+[0-9]/ { print $1; exit }')
+[[ -z "$version" ]] &amp;&amp; version=$(/usr/bin/java -version 2&gt;&amp;1 | /usr/bin/awk -F'"' '/version/ { print $2; exit }')
+
+echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

@@ -1,29 +1,40 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>Pulse Secure Version</displayName>
-<description>Extension Attribute checks for the release version of Pulse Secure Application installed {formerly known as Junos Pulse}</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-############################################################################&#13;
-# Extension Attribute checks SSL-VPN Version number.&#13;
-############################################################################&#13;
-AppFound="false"&#13;
-&#13;
-# Look for the older name App&#13;
-if [ -e "/Applications/Junos Pulse.app" ]; then&#13;
-SSLVPN_Version=$(cat "/Applications/Junos Pulse.app/Contents/Resources/JunosPulseCoreVersion.ini" | grep DisplayVersion | cut -c 16-); AppFound="true"&#13;
-&#13;
-# Look for the newer name App&#13;
-elif [ -e "/Applications/Pulse Secure.app" ]; then&#13;
-SSLVPN_Version=$(cat "/Applications/Pulse Secure.app/Contents/Resources/PulseSecureCoreVersion.ini" | grep DisplayVersion | cut -c 16-); AppFound="true"&#13;
-&#13;
-# If neither found, then say so&#13;
-elif [ AppFound == "false" ]; then&#13;
-SSLVPN_Version="not found"&#13;
-&#13;
-fi&#13;
-# Report result&#13;
-echo "&lt;result&gt;$SSLVPN_Version&lt;/result&gt;"&#13;
-&#13;
-exit 0</scriptContentsMac>
-<scriptContentsWindows/>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Pulse Secure Version</displayName>
+	<description>Returns the installed Pulse Secure / Ivanti Secure Access client version, or "not found". Pulse Secure was rebranded Ivanti Secure Access Client in 2022.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Pulse Secure / Ivanti Secure Access Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Pulse Secure became Ivanti Secure Access Client (ISAC); modern installs
+# live at /Applications/Ivanti Secure Access.app on macOS. We probe both.
+
+for app in \
+	"/Applications/Ivanti Secure Access.app/Contents/Info.plist" \
+	"/Applications/Pulse Secure.app/Contents/Info.plist" \
+	"/Applications/Junos Pulse.app/Contents/Info.plist"
+do
+	if [[ -f "$app" ]]; then
+		version=$(/usr/bin/defaults read "$app" CFBundleShortVersionString 2&gt;/dev/null)
+		echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+		exit 0
+	fi
+done
+
+# Fallback to the legacy ini files
+for ini in \
+	"/Applications/Pulse Secure.app/Contents/Resources/PulseSecureCoreVersion.ini" \
+	"/Applications/Junos Pulse.app/Contents/Resources/JunosPulseCoreVersion.ini"
+do
+	if [[ -f "$ini" ]]; then
+		version=$(/usr/bin/awk -F'=' '/DisplayVersion/ { print $2; exit }' "$ini")
+		echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+		exit 0
+	fi
+done
+
+echo "&lt;result&gt;not found&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

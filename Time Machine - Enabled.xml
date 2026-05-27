@@ -1,1 +1,30 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Time Machine - Enabled</displayName>	<displayInCategory>Security Reporting</displayInCategory>	<dataType>string</dataType>	<description>This attribute displays whether or not Time Machine is enabled.  The value to be verified will need to be specified when creating this extension attribute.  Example: "true" verifies that Time Machine is enabled.  This extension attribute requires this preference be set using Managed Preferences (MCX).</description>	<scriptContentsMac>#!/bin/shdesiredValue="EditFromTemplate_Desired_Value_-_Example:_true"appDomain="com.apple.TimeMachine"keyName="AutoBackup"currentUser=`last -1 -t console | awk '{print $1}'`result=""tmpResult="`dscl . mcxread /Users/$currentUser \"$appDomain\" \"$keyName\" |grep Value:| sed 's/Value\: //g'`"echo $tmpResultif [ "$tmpResult" == "1" ]; thenresult="true"elseif [ "$tmpResult" == "0" ]; then	result="false"else	if [ "$tmpResult" == "" ]; then		result="Domain or Key Not Found"	else		result="$tmpResult"	fififiif [ "$result" == "$desiredValue" ]; thenecho "&lt;result&gt;Pass ($result)&lt;/result&gt;"elseecho "&lt;result&gt;Fail ($result)&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Time Machine - Enabled</displayName>
+	<displayInCategory>Security Reporting</displayInCategory>
+	<dataType>string</dataType>
+	<description>Reports whether Time Machine is enabled (AutoBackup=1).</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Time Machine Enabled Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+desiredValue="EditFromTemplate_Desired_Value"
+
+raw=$(/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup 2&gt;/dev/null)
+
+case "$raw" in
+	1) value="true" ;;
+	0) value="false" ;;
+	"") value="Domain or Key Not Found" ;;
+	*) value="$raw" ;;
+esac
+
+if [[ "$value" == "$desiredValue" ]]; then
+	echo "&lt;result&gt;Pass ($value)&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Fail ($value)&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

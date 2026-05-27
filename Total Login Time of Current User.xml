@@ -1,1 +1,26 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Total Time of User Login</displayName>	<displayInCategory>User Information</displayInCategory>	<description>This attribute displays the current total time logged in of the current user.  This attribute applies only to Mac.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shcurrentUser=`ls -l /dev/console | awk {' print $3 '}`userLoginTime=`ac -p | grep "$currentUser" | awk {' print $2 '} | cut -d . -f 1`totalTimeInDays=`echo "scale=2 ; $userLoginTime/24" | bc`echo "&lt;result&gt;Login time in hours for $currentUser is $userLoginTime  Login time in days for $currentUser is $totalTimeInDays &lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Total Time of User Login</displayName>
+	<displayInCategory>User Information</displayInCategory>
+	<description>Total accumulated login time for the current console user.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Total Login Time Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# ac is part of the base BSD toolset and is preserved on every modern
+# macOS. Note: ac counts hours from wtmp/utmp, which the OS rotates, so
+# this represents "since the current wtmp rotation" not lifetime.
+
+user=$(/usr/bin/stat -f %Su /dev/console 2&gt;/dev/null)
+hours=$(/usr/bin/ac -p 2&gt;/dev/null | /usr/bin/awk -v u="$user" '$1 == u { print int($2); exit }')
+
+if [[ -z "$hours" ]]; then
+	echo "&lt;result&gt;No login data for $user&lt;/result&gt;"
+else
+	days=$(( hours / 24 ))
+	echo "&lt;result&gt;Login time for $user: ${hours}h (~${days}d)&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

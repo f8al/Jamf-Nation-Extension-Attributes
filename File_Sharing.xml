@@ -1,15 +1,22 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
-<displayName>File Sharing</displayName>
-<description>This attribute displays whether or not file sharing is enabled. This attribute only to Mac.</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-smb=$(launchctl list | grep smbd)&#13;
-afp=$(launchctl list | grep AppleFileServer)&#13;
-&#13;
-if [[  $smb == "" &amp;&amp; $afp == "" ]]; then&#13;
-	echo "&lt;result&gt;Off&lt;/result&gt;"&#13;
-else&#13;
-	echo "&lt;result&gt;On&lt;/result&gt;"&#13;
-fi</scriptContentsMac>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>File Sharing</displayName>
+	<displayInCategory>System Information</displayInCategory>
+	<description>Reports whether macOS File Sharing (SMB) is enabled. AFP service was removed in macOS 11 (Big Sur), so we only check smbd.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# File Sharing Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Modern macOS no longer ships AFP at all (removed in 11), so we only
+# probe smbd. launchctl print lists running services; the legacy "list"
+# subcommand is still supported but print is preferred.
+
+if /bin/launchctl list 2&gt;/dev/null | /usr/bin/grep -q "com.apple.smbd"; then
+    echo "&lt;result&gt;On&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Off&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

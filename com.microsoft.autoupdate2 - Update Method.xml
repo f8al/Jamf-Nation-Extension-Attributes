@@ -1,1 +1,26 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>com.microsoft.autoupdate2 - Update Method</displayName>	<displayInCategory>Managed Preferences</displayInCategory>	<description>This attribute returns enforcement status of the "Update Method" screensaver setting.  Since the com.microsoft.autoupdate2 domain only applies to the user space, the managed preferences will be queried for the last user to login.  This extension attribute requires this preference be set using Managed Preferences (MCX).</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shcurrentUser=`last -1 -t console | awk '{print $1}'`if [ -f "/usr/bin/mcxquery" ]; thenresult=`/usr/bin/mcxquery -user "$currentUser" | grep -A 1 -w com.microsoft.autoupdate2 | tail -1 | awk '{print $5}'`if [ "$result" == "" ]; then	result="Not set."fifiecho "&lt;result&gt;$result&lt;/result&gt;"	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>com.microsoft.autoupdate2 - Update Method</displayName>
+	<displayInCategory>Managed Preferences</displayInCategory>
+	<description>Reports the Microsoft AutoUpdate (MAU) HowToCheck setting from com.microsoft.autoupdate2 for the current console user.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Microsoft AutoUpdate Update Method Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# mcxquery is non-functional under modern Configuration Profile delivery.
+# Read the canonical pref directly. The bundle ID is com.microsoft.autoupdate2
+# even though the binary is now "Microsoft AutoUpdate 4.x".
+
+user=$(/usr/sbin/scutil &lt;&lt;&lt; "show State:/Users/ConsoleUser" 2&gt;/dev/null \
+	| /usr/bin/awk '/Name :/ &amp;&amp; ! /loginwindow/ { print $3; exit }')
+[[ -z "$user" || "$user" == "root" ]] &amp;&amp; user=$(/usr/bin/defaults read /Library/Preferences/com.apple.loginwindow lastUserName 2&gt;/dev/null)
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+
+method=$(/usr/bin/defaults read "/Library/Managed Preferences/$user/com.microsoft.autoupdate2" HowToCheck 2&gt;/dev/null)
+[[ -z "$method" ]] &amp;&amp; method=$(/usr/bin/defaults read "$home/Library/Preferences/com.microsoft.autoupdate2" HowToCheck 2&gt;/dev/null)
+
+echo "&lt;result&gt;${method:-Not set.}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

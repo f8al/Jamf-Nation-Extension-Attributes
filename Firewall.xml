@@ -1,1 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Firewall</displayName>	<displayInCategory>System Information</displayInCategory>	<description>This attribute displays whether or not the system firewall is enabled.    This attribute applies to both Mac and Windows.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shOS=`/usr/bin/sw_vers -productVersion | /usr/bin/colrm 5`if [[ "$OS" &lt; "10.5" ]]; then		result=`/usr/bin/defaults read /Library/Preferences/com.apple.sharing.firewall state`if [ "$result" == "YES" ]; then	echo "&lt;result&gt;On&lt;/result&gt;"elif [ "$result" == "NO" ]; then	echo "&lt;result&gt;Off&lt;/result&gt;"fielseresult=`/usr/bin/defaults read /Library/Preferences/com.apple.alf globalstate`if [ "$result" == "0" ]; then	echo "&lt;result&gt;Off&lt;/result&gt;"else	echo "&lt;result&gt;On&lt;/result&gt;"fifi	</scriptContentsMac>   <scriptTypeWindows>VBScript</scriptTypeWindows>	<scriptContentsWindows>On Error Resume Next   Set objFirewall = CreateObject("HNetCfg.FwMgr")Set objPolicy = objFirewall.LocalPolicy.CurrentProfileIf objPolicy.FirewallEnabled = True ThenstrStatus = "On"ElsestrStatus = "Off"End IfWScript.Echo "&lt;result&gt;" &amp; strStatus &amp; "&lt;/result&gt;"</scriptContentsWindows></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Firewall</displayName>
+	<displayInCategory>System Information</displayInCategory>
+	<description>Reports whether the application firewall is enabled.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Firewall Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Uses socketfilterfw, which is the supported tool on modern macOS. Reading
+# com.apple.alf globalstate via defaults is unreliable under MDM-managed
+# firewall profiles, since the value may live in a managed plist.
+
+state=$(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate 2&gt;/dev/null)
+
+case "$state" in
+    *enabled*)  echo "&lt;result&gt;On&lt;/result&gt;" ;;
+    *disabled*) echo "&lt;result&gt;Off&lt;/result&gt;" ;;
+    *)          echo "&lt;result&gt;Unknown&lt;/result&gt;" ;;
+esac
+</scriptContentsMac>
+</extensionAttribute>

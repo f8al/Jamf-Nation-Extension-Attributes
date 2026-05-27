@@ -1,1 +1,32 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Time Machine - Backup Destination</displayName>	<displayInCategory>Backup</displayInCategory>	<description>This attribute displays the Time Machine backup destination.</description>	<dataType>string</dataType>	<scriptContentsMac>#!/bin/shenabled=`/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup`if [ "$enabled" == "1" ];thenvalidateDestination=`/usr/sbin/diskutil info $(/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine "DestinationVolumeUUID") | awk '{print $1, $2}'`if [ "$validateDestination" == "Could not" ];then	echo "&lt;result&gt;Destination not mounted&lt;/result&gt;"else	backupDestination=`/usr/sbin/diskutil info $(/usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine "DestinationVolumeUUID") | grep "Mount Point" | /usr/bin/cut -c 30-`	echo "&lt;result&gt;$backupDestination&lt;/result&gt;"fielseecho "&lt;result&gt;Not enabled.&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Time Machine - Backup Destination</displayName>
+	<displayInCategory>Backup</displayInCategory>
+	<description>Returns the mount point of the Time Machine destination volume (if mounted), the destination URL for network backups, or "Not enabled".</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Time Machine Backup Destination Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# tmutil destinationinfo is more reliable than parsing the TimeMachine
+# plist directly; modern macOS may have multiple destinations and network
+# (smb/afp) destinations that don't have a DestinationVolumeUUID.
+
+if ! /usr/bin/defaults read /Library/Preferences/com.apple.TimeMachine AutoBackup 2&gt;/dev/null | /usr/bin/grep -q "^1$"; then
+	echo "&lt;result&gt;Not enabled.&lt;/result&gt;"
+	exit 0
+fi
+
+mount=$(/usr/bin/tmutil destinationinfo 2&gt;/dev/null | /usr/bin/awk -F': ' '/Mount Point/ { print $2; exit }')
+url=$(/usr/bin/tmutil destinationinfo 2&gt;/dev/null | /usr/bin/awk -F': ' '/URL[[:space:]]+:/ { print $2; exit }')
+
+if [[ -n "$mount" ]]; then
+	echo "&lt;result&gt;$mount&lt;/result&gt;"
+elif [[ -n "$url" ]]; then
+	echo "&lt;result&gt;$url&lt;/result&gt;"
+else
+	echo "&lt;result&gt;Destination not mounted&lt;/result&gt;"
+fi
+</scriptContentsMac>
+</extensionAttribute>

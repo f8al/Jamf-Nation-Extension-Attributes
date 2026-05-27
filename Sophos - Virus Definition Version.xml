@@ -1,1 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Sophos - Virus Definition Version</displayName>	<displayInCategory>AntiVirus</displayInCategory>	<description>This attribute returns the Virus Definitions Version for Sophos.  This attribute template applies to Sophos (v 7.1).</description>	<dataType>integer</dataType>	<scriptContentsMac>#!/bin/sh#This script has been verified to work on Sophos (v 7.1).#Check to see if Sophos is installedif [ -f "/usr/bin/sweep" ]; thenresult=`/usr/bin/sweep -v | grep "Virus data version" | awk '{print $5}'`echo "&lt;result&gt;$result&lt;/result&gt;"elseecho "&lt;result&gt;Not installed&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Sophos - Virus Definition Version</displayName>
+	<displayInCategory>AntiVirus</displayInCategory>
+	<description>Returns Sophos virus data version number.</description>
+	<dataType>integer</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Sophos Virus Definition Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+for sweep in /usr/local/bin/sweep /usr/bin/sweep "/Library/Sophos Anti-Virus/Sophos Anti-Virus.app/Contents/MacOS/sweep"; do
+	[[ -x "$sweep" ]] &amp;&amp; binary="$sweep" &amp;&amp; break
+done
+
+if [[ -z "$binary" ]]; then
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+	exit 0
+fi
+
+version=$("$binary" -v 2&gt;/dev/null | /usr/bin/awk '/Virus data version/ {print $5; exit}')
+echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

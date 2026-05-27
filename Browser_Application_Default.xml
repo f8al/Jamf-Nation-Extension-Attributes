@@ -1,33 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Browser Application Default</displayName>
-<description>This will determine the last user logged in and determine the default handler of content 'http'.  </description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/sh&#13;
-#####################################################################&#13;
-# Find the Default Browser on Mac OS X for the last logged in user&#13;
-# Cobbled together from other's hard work&#13;
-# By: Christopher T. Miller, Dated: 2014-11-13, Last Mod: 20141119&#13;
-# For ITSD-ISS of JHU-APL&#13;
-#####################################################################&#13;
-&#13;
-# use the 'last' command to find the last real user.&#13;
-# It will skip over the following users: reboot, shutdown, root, wtmp, adobeinstall, and any user you specify.&#13;
-LastUser=`/usr/bin/last console | /usr/bin/awk '{print $1}' | /usr/bin/sed -e '/^$/d' -e '/^root$/d' -e '/^wtmp$/d' -e '/^adobeinstall$/d' | /usr/bin/awk 'NR&gt;1{exit};1'`&#13;
-&#13;
-# Scour the Last User's LaunchServices plist file for the handler of content type "http"&#13;
-DefaultBrowser=$(/usr/bin/defaults read /Users/$LastUser/Library/Preferences/com.apple.LaunchServices.plist | grep http -B 2  | awk '{print $3}' | tail -n 2 | head -n 1 | sed -e 's/[";,)]//g')&#13;
-&#13;
-# Check the value of variable "DefaultBrowser" for absence of data and insert a negative finding if blank (IE no Default Browser App Setting)&#13;
-# This helps define which Macs have or haven't yet inventoried with the extension attribute&#13;
-if [ "$DefaultBrowser" == "" ] &#13;
-	then&#13;
-		DefaultBrowser="No Default Browser Defined"&#13;
-fi	&#13;
-&#13;
-# Output the results&#13;
-echo "&lt;result&gt;$DefaultBrowser&lt;/result&gt;"&#13;
-&#13;
-exit 0</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Browser Application Default</displayName>
+	<description>Returns the bundle ID registered as the default handler for http URLs for the current console user.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Default Browser Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# LaunchServices moved its handler list under com.apple.LaunchServices/
+# .secure on modern macOS. We parse LSHandlers and return the bundle ID
+# bound to http. Reports the current console user (or last login if none).
+
+user=$(/usr/sbin/scutil &lt;&lt;&lt; "show State:/Users/ConsoleUser" 2&gt;/dev/null \
+    | /usr/bin/awk '/Name :/ &amp;&amp; ! /loginwindow/ { print $3; exit }')
+
+if [[ -z "$user" || "$user" == "root" ]]; then
+    user=$(/usr/bin/defaults read /Library/Preferences/com.apple.loginwindow lastUserName 2&gt;/dev/null)
+fi
+
+home=$(/usr/bin/dscl . -read "/Users/$user" NFSHomeDirectory 2&gt;/dev/null | /usr/bin/awk '{print $2}')
+plist="$home/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist"
+
+if [[ ! -f "$plist" ]]; then
+    echo "&lt;result&gt;No Default Browser Defined&lt;/result&gt;"
+    exit 0
+fi
+
+browser=$(/usr/libexec/PlistBuddy -c 'Print :LSHandlers' "$plist" 2&gt;/dev/null \
+    | /usr/bin/awk '
+        /LSHandlerURLScheme = http$/ { want = 1 }
+        want &amp;&amp; /LSHandlerRoleAll/  { print $3; exit }
+    ')
+
+echo "&lt;result&gt;${browser:-No Default Browser Defined}&lt;/result&gt;"
+</scriptContentsMac>
 </extensionAttribute>

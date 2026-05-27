@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Firefox version</displayName>
-<description>Report version of firefox</description>
-<dataType>string</dataType>
-<scriptContentsMac>#!/bin/bash&#13;
-&#13;
-FFV=`/Applications/Firefox.app/Contents/MacOS/firefox --version | awk '{ print $3 '}`&#13;
-&#13;
-echo "&lt;result&gt;$FFV&lt;/result&gt;"</scriptContentsMac>
-<scriptContentsWindows/>
+	<displayName>Firefox version</displayName>
+	<description>Returns the installed Firefox version (CFBundleShortVersionString), or "Not Installed".</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Firefox Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe)
+# Reads the plist directly rather than launching firefox --version, which
+# is slow and may prompt for accessibility access on first launch.
+
+plist="/Applications/Firefox.app/Contents/Info.plist"
+
+if [[ -f "$plist" ]]; then
+    ver=$(/usr/bin/defaults read "$plist" CFBundleShortVersionString 2&gt;/dev/null)
+    echo "&lt;result&gt;${ver:-Unknown}&lt;/result&gt;"
+else
+    echo "&lt;result&gt;Not Installed&lt;/result&gt;"
+fi
+</scriptContentsMac>
 </extensionAttribute>

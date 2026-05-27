@@ -1,36 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE extensionAttribute PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <extensionAttribute>
-  <displayName>Detect Bootcamp Partition</displayName>
-  <displayInCategory/>
-  <dataType>string</dataType>
-  <description>This attribute uses the diskutil list command to check for disk partitions reporting as "Microsoft Basic Data". These partitions are used by Apple's Bootcamp.&#13;
-&#13;
-If Microsoft Basic Data partition is reported by diskutil, script reports "Yes". If no Microsoft Basic Data partition is reported by diskutil, script reports "No".</description>
-  <scriptContentsMac>#!/bin/sh
+	<displayName>Detect Bootcamp Partition</displayName>
+	<displayInCategory/>
+	<dataType>string</dataType>
+	<description>Reports "Yes" if a Microsoft Basic Data partition is present, "No" otherwise. Returns "N/A" on Apple Silicon (Boot Camp is Intel-only).</description>
+	<scriptContentsMac>#!/bin/zsh
 
-#
-# Using diskutil list to check for 
-# disk partitions reporting as 
-# "Microsoft Basic Data"
-#
+# Updated by SecurityShrimp 2026
+# Detect Boot Camp Partition Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel only
+# Boot Camp doesn't exist on Apple Silicon. On Intel, a Boot Camp install
+# creates a "Microsoft Basic Data" partition that diskutil enumerates.
 
-BOOTCAMP_DETECT=$( /usr/sbin/diskutil list | grep -c "Microsoft Basic Data" )
-
-#
-# If Microsoft Basic Data partition is
-# reported by diskutil, script reports
-# "Yes". If no Microsoft Basic Data partition
-# is reported by diskutil, script reports "No".
-# 
-
-if [[ "${BOOTCAMP_DETECT}" == "1" ]]; then
-      result=Yes
-   else
-      result=No
+if [[ "$(/usr/bin/uname -m)" == "arm64" ]]; then
+    echo "&lt;result&gt;N/A&lt;/result&gt;"
+    exit 0
 fi
-echo "&lt;result&gt;$result&lt;/result&gt;"
 
-exit 0
+if /usr/sbin/diskutil list 2&gt;/dev/null | /usr/bin/grep -q "Microsoft Basic Data"; then
+    echo "&lt;result&gt;Yes&lt;/result&gt;"
+else
+    echo "&lt;result&gt;No&lt;/result&gt;"
+fi
 </scriptContentsMac>
 </extensionAttribute>

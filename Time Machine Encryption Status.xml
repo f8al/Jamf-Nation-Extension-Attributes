@@ -1,34 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensionAttribute>
-<displayName>Time Machine Encryption Status</displayName>
-<description>Show if TimeMachine disk is encrypted.</description>
-<dataType>string</dataType>
-<scriptContentsMac>
-#!/bin/bash  
-#Todd Houle 
-#Partners Healthcare
-#19June2014    
-#revised 24June2014
-#To determine if connected time machine disk is encrypted. 
+	<displayName>Time Machine Encryption Status</displayName>
+	<description>Reports whether the Time Machine destination volume is encrypted.</description>
+	<dataType>string</dataType>
+	<scriptContentsMac>#!/bin/zsh
 
-mountPath=`tmutil destinationinfo | grep "Mount Point" | awk -F ": " '{print $2}'`
-if [ "$mountPath" == "" ]; then
-    tmExists=`tmutil destinationinfo |grep "No destinations configured"| awk '{print $2 $3 $4}'`
-    if [ "$tmExists" == "Nodestinationsconfigured." ]; then
-        result="Backup Not Enabled"
-    else
-        result="Disk not available"
-    fi
-else
-    disk=`df -h|grep "$mountPath"|awk '{print $1}'`
-    result=`diskutil cs info $disk |grep "Conversion Status" | awk '{print $3}'`
-    if [ "$result" == ""  ] ; then
-        result="Not Encrypted"
-    fi
+# Updated by SecurityShrimp 2026
+# Time Machine Encryption Status Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# CoreStorage (the original "diskutil cs" backend) is dead — macOS uses
+# APFS for everything now. We use diskutil info -plist on the destination
+# mount point and read the Encryption status directly.
+
+mount=$(/usr/bin/tmutil destinationinfo 2&gt;/dev/null \
+	| /usr/bin/awk -F': ' '/Mount Point/ { print $2; exit }')
+
+if [[ -z "$mount" ]]; then
+	if /usr/bin/tmutil destinationinfo 2&gt;/dev/null | /usr/bin/grep -q "No destinations configured"; then
+		echo "&lt;result&gt;Backup Not Enabled&lt;/result&gt;"
+	else
+		echo "&lt;result&gt;Disk not available&lt;/result&gt;"
+	fi
+	exit 0
 fi
 
-echo "<result>$result</result>"
+encrypted=$(/usr/sbin/diskutil info -plist "$mount" 2&gt;/dev/null \
+	| /usr/bin/plutil -extract Encryption raw - 2&gt;/dev/null)
 
+case "$encrypted" in
+	true|1) echo "&lt;result&gt;Encrypted&lt;/result&gt;" ;;
+	false|0) echo "&lt;result&gt;Not Encrypted&lt;/result&gt;" ;;
+	*) echo "&lt;result&gt;Unknown&lt;/result&gt;" ;;
+esac
 </scriptContentsMac>
-<scriptContentsWindows/>
 </extensionAttribute>

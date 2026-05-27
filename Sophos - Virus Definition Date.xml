@@ -1,1 +1,33 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Sophos - Virus Definition Date</displayName>	<displayInCategory>AntiVirus</displayInCategory>	<description>This attribute returns the Virus Definitions Date for Sophos.  This attribute template applies to Sophos (v 7.1).</description>	<dataType>date</dataType>	<scriptContentsMac>#!/bin/sh#This script has been verified to work on Sophos (v 7.1).#Check to see if Sophos is installedif [ -f "/usr/bin/sweep" ]; thenresult=`/bin/date -j -f "%b %d %Y" "$(/usr/bin/sweep -v | grep "Released" | awk '{print $4, $3, $5}')" "+%Y-%m-%d 00:00:00"`echo "&lt;result&gt;$result&lt;/result&gt;"elseecho "&lt;result&gt;Not installed&lt;/result&gt;"fi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Sophos - Virus Definition Date</displayName>
+	<displayInCategory>AntiVirus</displayInCategory>
+	<description>Returns Sophos Anti-Virus / Sophos Endpoint definition release date, or "Not installed".</description>
+	<dataType>date</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Sophos Virus Definition Date Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Modern Sophos Endpoint moved binaries from /usr/bin/sweep to inside the
+# .app bundle, but the legacy savscan/sweep wrappers are preserved at the
+# old paths for backwards compatibility on most installs.
+
+for sweep in /usr/local/bin/sweep /usr/bin/sweep "/Library/Sophos Anti-Virus/Sophos Anti-Virus.app/Contents/MacOS/sweep"; do
+	[[ -x "$sweep" ]] &amp;&amp; binary="$sweep" &amp;&amp; break
+done
+
+if [[ -z "$binary" ]]; then
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+	exit 0
+fi
+
+raw=$("$binary" -v 2&gt;/dev/null | /usr/bin/awk '/Released/ {print $4, $3, $5; exit}')
+
+if [[ -n "$raw" ]]; then
+	iso=$(/bin/date -j -f "%b %d %Y" "$raw" "+%Y-%m-%d 00:00:00" 2&gt;/dev/null)
+fi
+
+echo "&lt;result&gt;${iso:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

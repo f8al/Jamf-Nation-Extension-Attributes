@@ -1,1 +1,27 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>Pro Tools - Version</displayName>	<dataType>string</dataType>	<description>Gets the Installed version of Pro Tools.</description>	<scriptContentsMac>#!/bin/shPTversion=`defaults read /Applications/Avid/Pro\ Tools/Pro\ Tools.app/Contents/version CFBundleShortVersionString`echo "<result>$PTversion</result>"</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>Pro Tools - Version</displayName>
+	<dataType>string</dataType>
+	<description>Installed Avid Pro Tools version (CFBundleShortVersionString), or "Not Installed".</description>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# Pro Tools Version Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+# Recent Pro Tools (2023+) is "Pro Tools.app" at the top of /Applications;
+# older installers nested it under /Applications/Avid/Pro Tools/.
+
+for plist in \
+	"/Applications/Pro Tools.app/Contents/Info.plist" \
+	"/Applications/Avid/Pro Tools/Pro Tools.app/Contents/Info.plist"
+do
+	if [[ -f "$plist" ]]; then
+		version=$(/usr/bin/defaults read "$plist" CFBundleShortVersionString 2&gt;/dev/null)
+		echo "&lt;result&gt;${version:-Unknown}&lt;/result&gt;"
+		exit 0
+	fi
+done
+
+echo "&lt;result&gt;Not Installed&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>

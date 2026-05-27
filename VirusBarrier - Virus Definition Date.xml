@@ -1,1 +1,34 @@
-<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>	<displayName>VirusBarrier - Virus Definition Date</displayName>	<displayInCategory>AntiVirus</displayInCategory>	<description>This attribute returns the VirusBarrierX5 or VirusBarrierX6 virus definitions of the computer.</description>	<dataType>date</dataType>	<scriptContentsMac>#!/bin/sh#This script has been verified to work on VirusBarrier X5 and VirusBarrierX6.#Check to see if VirusBarrierX5 is installedif [ -f "/Library/Intego/virusbarrier.bundle/Contents/Resources/virusbarriers" ]; thenresult=`date -j -f "%Y-%m%d" "$(/Library/Intego/virusbarrier.bundle/Contents/Resources/virusbarriers -i | grep vdefsVersion | cut -c 15- | cut -c 1-4)-$(/Library/Intego/virusbarrier.bundle/Contents/Resources/virusbarriers -i | grep vdefsVersion | cut -c 15- | cut -c 5-8)" "+%Y-%m-%d 00:00:00"`echo "&lt;result&gt;$result&lt;/result&gt;"else#Check to see if VirusBarrierX6 is installedif [ -f "/Library/Intego/virusbarrier.bundle/Contents/MacOS/virusbarriers" ]; then	result=`date -j -f "%Y-%m%d" "$(/Library/Intego/virusbarrier.bundle/Contents/MacOS/virusbarriers -i | grep vdefsVersion | cut -c 15- | cut -c 1-4)-$(/Library/Intego/virusbarrier.bundle/Contents/MacOS/virusbarriers -i | grep vdefsVersion | cut -c 15- | cut -c 5-8)" "+%Y-%m-%d 00:00:00"`	echo "&lt;result&gt;$result&lt;/result&gt;"else	echo "&lt;result&gt;Not installed&lt;/result&gt;"fifi	</scriptContentsMac></extensionAttribute>
+<?xml version="1.0" encoding="UTF-8"?>
+<extensionAttribute>
+	<displayName>VirusBarrier - Virus Definition Date</displayName>
+	<displayInCategory>AntiVirus</displayInCategory>
+	<description>Returns Intego VirusBarrier's definition release date (YYYY-MM-DD).</description>
+	<dataType>date</dataType>
+	<scriptContentsMac>#!/bin/zsh
+
+# Updated by SecurityShrimp 2026
+# VirusBarrier Virus Definition Date Extension Attribute
+# Targets macOS 12 through 26 (Tahoe), Intel and Apple Silicon
+
+for cli in \
+	"/Library/Intego/virusbarrier.bundle/Contents/MacOS/virusbarriers" \
+	"/Library/Intego/virusbarrier.bundle/Contents/Resources/virusbarriers"
+do
+	[[ -x "$cli" ]] &amp;&amp; binary="$cli" &amp;&amp; break
+done
+
+if [[ -z "$binary" ]]; then
+	echo "&lt;result&gt;Not installed&lt;/result&gt;"
+	exit 0
+fi
+
+# vdefsVersion is a YYYYMMDD-prefixed integer.
+ymd=$("$binary" -i 2&gt;/dev/null | /usr/bin/awk -F'=' '/vdefsVersion/ { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print substr($2, 1, 8); exit }')
+
+if [[ -n "$ymd" ]]; then
+	iso=$(/bin/date -j -f "%Y%m%d" "$ymd" "+%Y-%m-%d 00:00:00" 2&gt;/dev/null)
+fi
+
+echo "&lt;result&gt;${iso:-Unknown}&lt;/result&gt;"
+</scriptContentsMac>
+</extensionAttribute>
